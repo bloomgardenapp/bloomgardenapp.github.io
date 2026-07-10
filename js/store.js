@@ -23,7 +23,7 @@ Notes — like this one! Link notes to a skill to find them from its plant.
 Quick tips:
 • Type "1h math" (or "30m spanish yesterday") into any Add time box — Bloom understands it.
 • Keep a daily streak going by finishing any task or focus session each day.
-• Your data lives in this browser. Back it up any time from Settings → Export.
+• Sign in from Settings (just your email — no password) to keep your garden safe on any device.
 
 Now go plant something!`,
     skillId: null,

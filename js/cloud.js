@@ -1,14 +1,14 @@
-// cloud.js — optional account + cloud sync. Sign in with an email code (no passwords),
+// cloud.js — optional account + cloud sync. Sign in with an emailed link (no passwords),
 // and the whole garden saves to the database on every change. Zero dependencies: raw
 // fetch against Supabase's auth + REST endpoints.
 import { store } from './store.js';
 import { toast } from './ui.js';
 
-// ── Fill these in from your Supabase project (Settings → API) and the app grows accounts.
-// Leave blank and Bloom stays fully local — the account section simply hides itself.
+// ── Supabase project. Leave blank and Bloom stays fully local — the account
+// section simply hides itself. The publishable key is designed to be public.
 export const CLOUD = {
-  url: '',   // e.g. 'https://abcdefgh.supabase.co'
-  key: '',   // the "anon public" key
+  url: 'https://rbljgkthmbfvqtataocc.supabase.co',
+  key: 'sb_publishable__JUTOmE75UnmBQav7J9CCw_UbGu4iY8',
 };
 
 const SKEY = 'bloom.session.v1';
@@ -35,30 +35,48 @@ const setStatus = (s) => { status = s; for (const fn of [...statusListeners]) fn
 const jsonHeaders = (authed) => ({
   'Content-Type': 'application/json',
   apikey: CLOUD.key,
-  Authorization: `Bearer ${authed && session ? session.access_token : CLOUD.key}`,
+  // publishable keys aren't JWTs — only send Authorization once we hold a user token
+  ...(authed && session ? { Authorization: `Bearer ${session.access_token}` } : {}),
 });
 
-// ── auth: email → 6-digit code → session
-export async function requestCode(email) {
+// ── auth: email → sign-in link → the link lands back on Bloom with a session in the hash
+export async function requestLink(email) {
   const res = await fetch(`${CLOUD.url}/auth/v1/otp`, {
     method: 'POST', headers: jsonHeaders(false),
     body: JSON.stringify({ email, create_user: true }),
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
-    throw new Error(err.msg || err.error_description || 'Could not send the code');
+    throw new Error(err.msg || err.error_description || 'Could not send the link');
   }
 }
 
-export async function verifyCode(email, token) {
-  const res = await fetch(`${CLOUD.url}/auth/v1/verify`, {
-    method: 'POST', headers: jsonHeaders(false),
-    body: JSON.stringify({ email, token, type: 'email' }),
-  });
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok || !data.access_token) throw new Error(data.msg || data.error_description || 'Wrong or expired code');
-  saveSession(data);
-  await firstSync();
+const decodeJwt = (t) => {
+  try { return JSON.parse(atob(t.split('.')[1].replace(/-/g, '+').replace(/_/g, '/'))); }
+  catch { return null; }
+};
+
+// Call once at boot, before routing: if the URL hash carries Supabase auth tokens
+// (the user just clicked their sign-in link), turn them into a session and clean the URL.
+export function handleAuthRedirect() {
+  const h = location.hash || '';
+  if (!/access_token=|error_description=/.test(h)) return false;
+  const params = new URLSearchParams(h.replace(/^#\/?/, ''));
+  const clean = () => history.replaceState(null, '', location.pathname + location.search);
+  const errDesc = params.get('error_description');
+  if (errDesc) {
+    clean();
+    toast(errDesc.replace(/\+/g, ' '), 'leaf');
+    return false;
+  }
+  const access_token = params.get('access_token');
+  const refresh_token = params.get('refresh_token');
+  const claims = decodeJwt(access_token);
+  clean();
+  if (!access_token || !claims?.sub) return false;
+  saveSession({ access_token, refresh_token, user: { id: claims.sub, email: claims.email } });
+  toast(`Signed in as ${claims.email}`, 'flower');
+  return true;
 }
 
 async function refreshSession() {

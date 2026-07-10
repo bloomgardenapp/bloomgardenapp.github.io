@@ -120,7 +120,7 @@ function openSettings() {
       );
       return;
     }
-    // signed out: ask for email, then the code
+    // signed out: ask for email, send a sign-in link
     const emailIn = el('input', { class: 'input', type: 'email', id: 'account-email', placeholder: 'you@example.com', autocomplete: 'email' });
     const msg = el('p', { class: 'muted small', style: { marginTop: '6px' } }, 'Sign in to keep your garden safe and use it on any device.');
     const sendBtn = el('button', {
@@ -129,41 +129,22 @@ function openSettings() {
         const email = emailIn.value.trim().toLowerCase();
         if (!/^\S+@\S+\.\S+$/.test(email)) { sfx.uhoh(); emailIn.focus(); return; }
         sendBtn.disabled = true;
-        msg.textContent = 'Sending your code…';
+        msg.textContent = 'Sending your link…';
         try {
-          await cloud.requestCode(email);
-          const codeIn = el('input', { class: 'input', id: 'account-code', placeholder: '6-digit code', inputmode: 'numeric', autocomplete: 'one-time-code', style: { width: '130px' } });
-          const verifyBtn = el('button', {
-            class: 'btn btn-primary', id: 'account-verify',
-            onClick: async () => {
-              verifyBtn.disabled = true;
-              msg.textContent = 'Checking…';
-              try {
-                await cloud.verifyCode(email, codeIn.value.trim());
-                sfx.chime();
-                renderAccount();
-                store.notify(); // the greeting/name may have just arrived from the cloud
-              } catch (err) {
-                msg.textContent = String(err.message || 'That code didn’t work — try again.');
-                verifyBtn.disabled = false;
-              }
-            },
-          }, 'Sign in');
-          codeIn.addEventListener('keydown', (e) => { if (e.key === 'Enter') verifyBtn.click(); });
+          await cloud.requestLink(email);
+          sfx.chime();
           accountBox.replaceChildren(
-            el('p', { class: 'muted small', style: { marginBottom: '8px' } }, `We emailed a code to ${email} — type it here.`),
-            el('div', { class: 'row gap wrap' }, codeIn, verifyBtn,
+            el('p', { class: 'muted small', style: { marginBottom: '8px' } },
+              'Check your email — we sent a sign-in link to ', el('b', {}, email), '. Click it and you’re in.'),
+            el('div', { class: 'row gap wrap' },
               el('button', { class: 'link-btn', onClick: () => renderAccount() }, 'different email')),
-            msg,
           );
-          msg.textContent = '';
-          setTimeout(() => codeIn.focus(), 60);
         } catch (err) {
-          msg.textContent = String(err.message || 'Could not send the code — try again.');
+          msg.textContent = String(err.message || 'Could not send the link — try again.');
           sendBtn.disabled = false;
         }
       },
-    }, 'Send code');
+    }, 'Send sign-in link');
     emailIn.addEventListener('keydown', (e) => { if (e.key === 'Enter') sendBtn.click(); });
     accountBox.replaceChildren(
       el('div', { class: 'row gap wrap' }, emailIn, sendBtn),
@@ -423,10 +404,11 @@ addEventListener('keydown', (e) => {
 
 // ---------- boot ----------
 window.addEventListener('bloom:open-settings', openSettings);
+const authReturn = cloud.handleAuthRedirect(); // sign-in link lands here — must run before route()
 buildSidebar();
 applyTheme();
 route();
-maybeOnboard();
+if (!authReturn) maybeOnboard(); // just signed in → their garden is about to sync down, don't onboard over it
 cloud.initCloud(); // account + sync, if configured
 syncMusic(); // gentle garden music, on by default (starts after first click per browser rules)
 setTimeout(checkKeepsakes, 800);
