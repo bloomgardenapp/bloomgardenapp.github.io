@@ -199,7 +199,7 @@ function openSettings() {
         },
       }, ic('reset', { size: 14 }), 'Reset'),
     ),
-    el('p', { class: 'muted small', style: { marginTop: '18px', textAlign: 'center' } }, 'made with ', ic('heart', { size: 12, cls: 'heart-ic' }), ' for Jasmine'),
+    el('p', { class: 'muted small', style: { marginTop: '18px', textAlign: 'center' } }, 'made with ', ic('heart', { size: 12, cls: 'heart-ic' }), ' from Jasmine'),
   ), { onClose: () => unsubStatus?.() });
 }
 
