@@ -7,6 +7,7 @@ import { streak, logSession, checkKeepsakes } from './progress.js';
 import { ic, svgStr } from './icons.js';
 import { startTour } from './tour.js';
 import { plantSVG, SPECIES } from './plant.js';
+import * as cloud from './cloud.js';
 import * as today from './views/today.js';
 import * as tasks from './views/tasks.js';
 import * as calendar from './views/calendar.js';
@@ -94,35 +95,87 @@ function openSettings() {
   }, r.label));
   ringerRow.append(...ringerChips);
 
-  function exportData() {
-    const blob = new Blob([JSON.stringify(store.state, null, 2)], { type: 'application/json' });
-    const a = el('a', { href: URL.createObjectURL(blob), download: `bloom-backup-${todayYmd()}.json` });
-    a.click();
-    URL.revokeObjectURL(a.href);
-    toast('Backup downloaded', 'download');
-  }
-
-  const fileIn = el('input', {
-    type: 'file', accept: '.json,application/json', style: { display: 'none' },
-    onChange: async (e) => {
-      const f = e.target.files[0];
-      if (!f) return;
-      try {
-        const data = JSON.parse(await f.text());
-        if (data.version !== 1 || !Array.isArray(data.tasks) || !Array.isArray(data.skills)) throw new Error('not a bloom backup');
-        if (await confirmDialog('Replace everything with this backup? Current data is overwritten.', { yes: 'Import', danger: false })) {
-          store.replace(data);
-          close();
-          toast('Backup restored', 'flower');
+  // ---- account: email → code → synced garden (hidden until cloud is configured) ----
+  const accountBox = el('div', {});
+  let unsubStatus = null;
+  const renderAccount = () => {
+    if (!cloud.cloudConfigured()) {
+      accountBox.replaceChildren(
+        el('p', { class: 'muted small' }, 'Everything lives in this browser for now.'),
+      );
+      return;
+    }
+    if (cloud.signedIn()) {
+      const label = (s) => ({ syncing: 'syncing…', synced: 'synced', error: 'sync hiccup — retrying', idle: 'signed in' }[s] || s);
+      const statusChip = el('span', { class: 'chip green', id: 'sync-status' }, label(cloud.syncStatus()));
+      unsubStatus?.();
+      unsubStatus = cloud.onSyncStatus((s) => { statusChip.textContent = label(s); });
+      accountBox.replaceChildren(
+        el('p', { class: 'muted small', style: { marginBottom: '8px' } },
+          'Signed in as ', el('b', {}, cloud.userEmail()), ' — your garden saves to your account on every change.'),
+        el('div', { class: 'row gap wrap', style: { alignItems: 'center' } },
+          statusChip,
+          el('button', { class: 'btn', id: 'account-signout', onClick: () => { cloud.signOut(); renderAccount(); } }, 'Sign out'),
+        ),
+      );
+      return;
+    }
+    // signed out: ask for email, then the code
+    const emailIn = el('input', { class: 'input', type: 'email', id: 'account-email', placeholder: 'you@example.com', autocomplete: 'email' });
+    const msg = el('p', { class: 'muted small', style: { marginTop: '6px' } }, 'Sign in to keep your garden safe and use it on any device.');
+    const sendBtn = el('button', {
+      class: 'btn btn-primary', id: 'account-send',
+      onClick: async () => {
+        const email = emailIn.value.trim().toLowerCase();
+        if (!/^\S+@\S+\.\S+$/.test(email)) { sfx.uhoh(); emailIn.focus(); return; }
+        sendBtn.disabled = true;
+        msg.textContent = 'Sending your code…';
+        try {
+          await cloud.requestCode(email);
+          const codeIn = el('input', { class: 'input', id: 'account-code', placeholder: '6-digit code', inputmode: 'numeric', autocomplete: 'one-time-code', style: { width: '130px' } });
+          const verifyBtn = el('button', {
+            class: 'btn btn-primary', id: 'account-verify',
+            onClick: async () => {
+              verifyBtn.disabled = true;
+              msg.textContent = 'Checking…';
+              try {
+                await cloud.verifyCode(email, codeIn.value.trim());
+                sfx.chime();
+                renderAccount();
+                store.notify(); // the greeting/name may have just arrived from the cloud
+              } catch (err) {
+                msg.textContent = String(err.message || 'That code didn’t work — try again.');
+                verifyBtn.disabled = false;
+              }
+            },
+          }, 'Sign in');
+          codeIn.addEventListener('keydown', (e) => { if (e.key === 'Enter') verifyBtn.click(); });
+          accountBox.replaceChildren(
+            el('p', { class: 'muted small', style: { marginBottom: '8px' } }, `We emailed a code to ${email} — type it here.`),
+            el('div', { class: 'row gap wrap' }, codeIn, verifyBtn,
+              el('button', { class: 'link-btn', onClick: () => renderAccount() }, 'different email')),
+            msg,
+          );
+          msg.textContent = '';
+          setTimeout(() => codeIn.focus(), 60);
+        } catch (err) {
+          msg.textContent = String(err.message || 'Could not send the code — try again.');
+          sendBtn.disabled = false;
         }
-      } catch {
-        toast('That file isn’t a Bloom backup', 'x-circle');
-      }
-    },
-  });
+      },
+    }, 'Send code');
+    emailIn.addEventListener('keydown', (e) => { if (e.key === 'Enter') sendBtn.click(); });
+    accountBox.replaceChildren(
+      el('div', { class: 'row gap wrap' }, emailIn, sendBtn),
+      msg,
+    );
+  };
+  renderAccount();
 
   const close = openModal(el('div', {},
     el('h2', {}, 'Settings'),
+    el('div', { class: 'field-label' }, 'Account'),
+    accountBox,
     el('div', { class: 'field-label' }, 'Your name'),
     nameIn,
     el('div', { class: 'field-label' }, 'Theme'),
@@ -134,12 +187,8 @@ function openSettings() {
     el('div', { class: 'field-label' }, 'Timer ringer'),
     ringerRow,
     el('p', { class: 'muted small', style: { marginTop: '6px' } }, 'Tap one to hear it — it plays when a focus session finishes.'),
-    el('div', { class: 'field-label' }, 'Your data'),
-    el('p', { class: 'muted small', style: { marginBottom: '8px' } }, 'Everything lives in this browser. Export a backup any time.'),
+    el('div', { class: 'field-label' }, 'Start over'),
     el('div', { class: 'row gap wrap' },
-      el('button', { class: 'btn', onClick: exportData }, ic('download', { size: 14 }), 'Export'),
-      el('button', { class: 'btn', onClick: () => fileIn.click() }, ic('folder', { size: 14 }), 'Import'),
-      fileIn,
       el('button', {
         class: 'btn btn-danger', onClick: async () => {
           if (await confirmDialog('Start completely fresh? Tasks, notes, garden — everything is wiped.', { yes: 'Wipe it all' })) {
@@ -151,7 +200,7 @@ function openSettings() {
       }, ic('reset', { size: 14 }), 'Reset'),
     ),
     el('p', { class: 'muted small', style: { marginTop: '18px', textAlign: 'center' } }, 'made with ', ic('heart', { size: 12, cls: 'heart-ic' }), ' for Jasmine'),
-  ));
+  ), { onClose: () => unsubStatus?.() });
 }
 
 // ---------- onboarding: say hi → name → plant the first skill ----------
@@ -378,6 +427,7 @@ buildSidebar();
 applyTheme();
 route();
 maybeOnboard();
+cloud.initCloud(); // account + sync, if configured
 syncMusic(); // gentle garden music, on by default (starts after first click per browser rules)
 setTimeout(checkKeepsakes, 800);
 
@@ -385,6 +435,7 @@ setTimeout(checkKeepsakes, 800);
 if (['localhost', '127.0.0.1'].includes(location.hostname)) {
   window.__bloom = {
     store,
+    cloud,
     logSession,
     parseQuickLog: (t) => parseQuickLog(t, store.state.skills),
     levelForXp,

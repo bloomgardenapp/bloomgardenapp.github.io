@@ -46,6 +46,7 @@ function defaultState() {
     sessions: [], // {id, skillId, minutes, date, source, at}
     keepsakes: [], // earned keepsake ids (for one-time celebrations)
     timer: null,  // {skillId, durationSec, startedAt, pausedAt, pausedTotal}
+    editedAt: null, // last local edit — cloud sync compares this (newest wins)
   };
 }
 
@@ -73,12 +74,16 @@ function load() {
 }
 
 const listeners = new Set();
+let onSaveCb = null; // cloud sync hooks in here — fires on every save, silent or not
 
 export const store = {
   state: load(),
+  setOnSave(fn) { onSaveCb = fn; },
   save(silent = false) {
+    store.state.editedAt = new Date().toISOString(); // newest-edit-wins for cloud sync
     try { localStorage.setItem(KEY, JSON.stringify(store.state)); }
     catch (e) { console.error('Bloom: save failed', e); }
+    onSaveCb?.();
     if (!silent) store.notify();
   },
   notify() { for (const fn of [...listeners]) fn(); },
