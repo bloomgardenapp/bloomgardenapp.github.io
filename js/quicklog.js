@@ -15,7 +15,7 @@ export function quickLogBox({ placeholder = 'What did you do? — “1h math”,
   let picked = null; // chosen plant object, or null = detect the plant from the text
 
   const plantSel = skillSelect({
-    value: '', allowNone: true, noneLabel: '—',
+    value: '', allowNone: true, noneLabel: '---',
     onChange: (id) => { picked = id ? skillById(id) : null; syncPlaceholder(); reparse(); input.focus(); },
   });
   plantSel.classList.add('quicklog-plant');
