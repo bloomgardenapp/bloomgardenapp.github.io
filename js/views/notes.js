@@ -97,15 +97,35 @@ function editor(n, rr, listEl) {
   const fmtBtn = (label, title, fn, cls = '') =>
     el('button', { class: 'icon-btn fmt-btn ' + cls, title, type: 'button', onMousedown: cmd(fn) }, label);
 
+  const unwrap = (m) => { const p = m.parentNode; while (m.firstChild) p.insertBefore(m.firstChild, m); m.remove(); };
+  const cleanMarks = () => {
+    // no nesting, no empty leftovers, and same-colour neighbours fuse into one smooth mark
+    [...bodyIn.querySelectorAll('mark mark')].forEach(unwrap);
+    [...bodyIn.querySelectorAll('mark')].forEach((m) => { if (!m.textContent) m.remove(); });
+    [...bodyIn.querySelectorAll('mark')].forEach((m) => {
+      let next = m.nextSibling;
+      while (next && next.nodeName === 'MARK' && next.className === m.className) {
+        const dead = next;
+        next = dead.nextSibling;
+        while (dead.firstChild) m.append(dead.firstChild);
+        dead.remove();
+      }
+    });
+    bodyIn.normalize();
+  };
   const applyHighlight = (klass) => {
     const sel = getSelection();
     if (!sel.rangeCount || sel.isCollapsed) return;
     const range = sel.getRangeAt(0);
     if (!bodyIn.contains(range.commonAncestorContainer)) return;
+    const tmp = document.createElement('div');
+    tmp.append(range.extractContents());
+    [...tmp.querySelectorAll('mark')].forEach(unwrap); // recolour, never nest
     const mark = document.createElement('mark');
     mark.className = klass;
-    mark.append(range.extractContents());
+    while (tmp.firstChild) mark.append(tmp.firstChild);
     range.insertNode(mark);
+    cleanMarks();
     sel.removeAllRanges();
   };
   const clearHighlight = () => {
@@ -113,12 +133,9 @@ function editor(n, rr, listEl) {
     if (!sel.rangeCount) return;
     const range = sel.getRangeAt(0);
     [...bodyIn.querySelectorAll('mark')].forEach((m) => {
-      if (range.intersectsNode(m)) {
-        const p = m.parentNode;
-        while (m.firstChild) p.insertBefore(m.firstChild, m);
-        m.remove();
-      }
+      if (range.intersectsNode(m)) unwrap(m);
     });
+    cleanMarks();
   };
   const toggleChecklist = () => {
     // already in a list? just flip it between bullets and checkboxes
