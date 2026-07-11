@@ -133,12 +133,35 @@ function openSettings() {
         try {
           await cloud.requestLink(email);
           sfx.chime();
+          const codeIn = el('input', { class: 'input', id: 'account-code', placeholder: '6-digit code', inputmode: 'numeric', autocomplete: 'one-time-code', style: { width: '130px' } });
+          const codeMsg = el('p', { class: 'muted small', style: { marginTop: '6px' } }, '');
+          const verifyBtn = el('button', {
+            class: 'btn btn-primary', id: 'account-verify',
+            onClick: async () => {
+              const code = codeIn.value.trim();
+              if (!code) { sfx.uhoh(); codeIn.focus(); return; }
+              verifyBtn.disabled = true;
+              codeMsg.textContent = 'Checking…';
+              try {
+                await cloud.verifyCode(email, code);
+                sfx.chime();
+                renderAccount();
+                store.notify(); // the greeting/name may have just arrived from the cloud
+              } catch (err) {
+                codeMsg.textContent = String(err.message || 'That code didn’t work — try again.');
+                verifyBtn.disabled = false;
+              }
+            },
+          }, 'Sign in');
+          codeIn.addEventListener('keydown', (e) => { if (e.key === 'Enter') verifyBtn.click(); });
           accountBox.replaceChildren(
             el('p', { class: 'muted small', style: { marginBottom: '8px' } },
-              'Check your email — we sent a sign-in link to ', el('b', {}, email), '. Click it and you’re in.'),
-            el('div', { class: 'row gap wrap' },
+              'Check your email — we wrote to ', el('b', {}, email), '. Type the code from it here, or just click the link in it.'),
+            el('div', { class: 'row gap wrap' }, codeIn, verifyBtn,
               el('button', { class: 'link-btn', onClick: () => renderAccount() }, 'different email')),
+            codeMsg,
           );
+          setTimeout(() => codeIn.focus(), 60);
         } catch (err) {
           msg.textContent = String(err.message || 'Could not send the link — try again.');
           sendBtn.disabled = false;

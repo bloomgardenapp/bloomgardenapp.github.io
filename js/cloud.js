@@ -51,6 +51,19 @@ export async function requestLink(email) {
   }
 }
 
+// The email carries a 6-digit code too (once the template includes {{ .Token }}) —
+// typing it signs in right here, no link-click needed.
+export async function verifyCode(email, token) {
+  const res = await fetch(`${CLOUD.url}/auth/v1/verify`, {
+    method: 'POST', headers: jsonHeaders(false),
+    body: JSON.stringify({ email, token, type: 'email' }),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok || !data.access_token) throw new Error(data.msg || data.error_description || 'Wrong or expired code');
+  saveSession(data);
+  await firstSync();
+}
+
 const decodeJwt = (t) => {
   try { return JSON.parse(atob(t.split('.')[1].replace(/-/g, '+').replace(/_/g, '/'))); }
   catch { return null; }
