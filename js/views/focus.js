@@ -14,6 +14,7 @@ let selSkillId = null;
 let selDur = 25;
 let selMode = 'single'; // 'single' | 'cycle'
 let selBreak = 5;
+let selFirst = 'study'; // 'study' | 'break' — cycles can ease in with the break first (à la Pomofocus)
 let uiInterval = null;
 
 // ---------- engine (used globally via main.js tick) ----------
@@ -51,8 +52,8 @@ export function completeTimer() {
   const name = sk ? sk.name : 'your plant';
 
   if ((t.phase || 'work') === 'break') {
-    // break over → next round starts by itself
-    const round = (t.round || 1) + 1;
+    // break over → next round starts by itself (round 0 = break-first warmup → round 1)
+    const round = (t.round ?? 1) + 1;
     store.state.timer = {
       skillId: t.skillId, durationSec: t.workSec, workSec: t.workSec, breakSec: t.breakSec,
       mode: 'cycle', phase: 'work', round,
@@ -89,9 +90,11 @@ export function setFocusSkill(id) { selSkillId = id; }
 
 function startTimer(skillId, minutes) {
   const workSec = Math.round(minutes * 60);
+  const breakFirst = selMode === 'cycle' && selFirst === 'break';
   store.state.timer = {
-    skillId, durationSec: workSec, workSec, breakSec: selBreak * 60,
-    mode: selMode, phase: 'work', round: 1,
+    // break-first cycles open on the break at round 0 — completing it rolls into round 1 of work
+    skillId, durationSec: breakFirst ? selBreak * 60 : workSec, workSec, breakSec: selBreak * 60,
+    mode: selMode, phase: breakFirst ? 'break' : 'work', round: breakFirst ? 0 : 1,
     startedAt: Date.now(), pausedAt: null, pausedTotal: 0,
   };
   sfx.start();
@@ -210,7 +213,7 @@ function openZen() {
     prog.style.stroke = phase === 'break' ? '#7FA98F' : sk.color;
     timeEl.textContent = fmtClock(rem);
     labelEl.textContent = phase === 'break'
-      ? `little break · round ${tt.round || 1}`
+      ? (tt.round === 0 ? 'warm-up break' : `little break · round ${tt.round || 1}`)
       : (tt.mode === 'cycle' ? `${sk.name} · round ${tt.round || 1}` : sk.name);
     pauseBtn.replaceChildren(ic(tt.pausedAt ? 'play' : 'pause', { size: 13 }), tt.pausedAt ? 'Resume' : 'Pause');
 
@@ -330,7 +333,7 @@ export async function openPip() {
     }
     timeEl.textContent = fmtClock(rem);
     labelEl.textContent = phase === 'break'
-      ? `break · round ${tt.round || 1}`
+      ? (tt.round === 0 ? 'warm-up break' : `break · round ${tt.round || 1}`)
       : (tt.mode === 'cycle' ? `${sk ? sk.name : 'focus'} · round ${tt.round || 1}` : (sk ? sk.name : 'focus'));
     if (phase !== lastPhase) barFill.style.transition = 'none'; // don't slide the bar backwards on a phase change
     barFill.style.width = `${Math.round(progress * 100)}%`;
@@ -402,7 +405,7 @@ function runningCard() {
       ? el('h2', {}, 'Little ', el('em', {}, 'break'), ' ', ic('leaf', { size: 16, cls: 'title-ic' }))
       : el('h2', {}, 'Growing ', el('em', {}, sk.name), ' ', el('span', { class: 'pulse-drop' }, ic('drop', { size: 16, cls: 'title-ic' })));
   const subText = onBreak
-    ? `round ${t.round || 1} done · back to ${sk.name} after this`
+    ? (t.round === 0 ? `warm-up break · ${sk.name} starts after this` : `round ${t.round || 1} done · back to ${sk.name} after this`)
     : t.mode === 'cycle'
       ? `round ${t.round || 1} · ${fmtMin(Math.round(t.workSec / 60))} work + ${fmtMin(Math.round(t.breakSec / 60))} break, repeating`
       : `${fmtMin(Math.round(t.durationSec / 60))} session · every minute = 1 XP`;
@@ -449,7 +452,7 @@ function setupCard() {
   const durs = [15, 25, 45, 60];
   const customIn = el('input', {
     class: 'input dur-custom', type: 'number', min: '1', max: '240', id: 'dur-custom-in',
-    placeholder: 'custom', 'aria-label': 'custom study minutes', title: 'Type any number of minutes',
+    placeholder: '---', 'aria-label': 'custom study minutes', title: 'Type any number of minutes',
     value: durs.includes(selDur) ? '' : selDur,
     onInput: (e) => { const v = parseInt(e.target.value, 10); if (v > 0) { selDur = Math.min(v, 240); refreshDur(); } },
   });
@@ -467,11 +470,21 @@ function setupCard() {
   }, `${b}m break`));
   const breakCustom = el('input', {
     class: 'input dur-custom', type: 'number', min: '1', max: '60', 'aria-label': 'custom break minutes',
-    placeholder: 'custom', title: 'Type any number of minutes', value: BREAKS.includes(selBreak) ? '' : selBreak,
-    onInput: (e) => { const v = parseInt(e.target.value, 10); if (v > 0) { selBreak = Math.min(v, 60); syncBreak(); } },
+    placeholder: '---', title: 'Type any number of minutes', value: BREAKS.includes(selBreak) ? '' : selBreak,
+    onInput: (e) => { const v = parseInt(e.target.value, 10); if (v > 0) { selBreak = Math.min(v, 60); syncBreak(); refreshDur(); } },
   });
+  // cycles can open with the break — some people warm up before the first round (Pomofocus-style)
+  const firstChips = [['study', 'study first'], ['break', 'break first']].map(([v, label]) => el('button', {
+    class: 'dur-chip' + (selFirst === v ? ' sel' : ''), dataset: { first: v },
+    onClick: () => {
+      selFirst = v;
+      sfx.click();
+      firstChips.forEach((c) => c.classList.toggle('sel', c.dataset.first === selFirst));
+      refreshDur();
+    },
+  }, label));
   const breakRow = el('div', { class: 'dur-chips', style: { display: selMode === 'cycle' ? '' : 'none', margin: '4px 0 0' } },
-    el('span', { class: 'dur-label muted small' }, 'break'), ...breakChips, breakCustom);
+    ...breakChips, breakCustom, el('span', { style: { width: '6px' } }), ...firstChips);
   const modeChips = [['single', 'Single session'], ['cycle', 'Cycles']].map(([m, label]) => el('button', {
     class: 'dur-chip' + (selMode === m ? ' sel' : ''), dataset: { mode: m },
     onClick: () => {
@@ -485,7 +498,9 @@ function setupCard() {
 
   function refreshDur() {
     durChips.forEach((c) => c.classList.toggle('sel', parseInt(c.dataset.min, 10) === selDur));
-    startBtn.textContent = selMode === 'cycle' ? `Start ${selDur}m rounds` : `Start ${selDur}m of focus`;
+    startBtn.textContent = selMode !== 'cycle' ? `Start ${selDur}m of focus`
+      : selFirst === 'break' ? `Start with a ${selBreak}m break`
+      : `Start ${selDur}m rounds`;
   }
 
   const startBtn = el('button', {
@@ -494,7 +509,8 @@ function setupCard() {
       if (!selSkillId) { sfx.uhoh(); toast('Pick a plant to water first', 'pot'); return; }
       startTimer(selSkillId, selDur);
     },
-  }, selMode === 'cycle' ? `Start ${selDur}m rounds` : `Start ${selDur}m of focus`);
+  }, '');
+  refreshDur();
 
   return el('div', { class: 'card focus-hero' },
     el('h2', {}, 'Grow some ', el('em', { class: 'squiggle' }, 'focus')),
@@ -505,7 +521,7 @@ function setupCard() {
           el('button', { class: 'btn btn-primary btn-big', onClick: async () => { const sk = await openSkillEditor(); if (sk) { selSkillId = sk.id; store.notify(); } } }, ic('pot', { size: 15 }), 'Plant your first skill'),
         ),
     el('div', { class: 'dur-chips', style: { marginBottom: '2px' } }, ...modeChips),
-    el('div', { class: 'dur-chips' }, el('span', { class: 'dur-label muted small' }, 'study'), ...durChips, customIn),
+    el('div', { class: 'dur-chips' }, ...durChips, customIn),
     breakRow,
     el('div', { style: { marginTop: '14px' } }, startBtn),
   );

@@ -428,8 +428,7 @@ details.done-details summary:hover { color: var(--ink); }
 }
 .dur-chip:hover { border-color: var(--olive); }
 .dur-chip.sel { border-color: var(--olive); background: var(--olive-soft); color: var(--olive-2); }
-.dur-custom { width: 86px !important; text-align: center; border-radius: 999px !important; }
-.dur-label { min-width: 40px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; font-size: 10px !important; }
+.dur-custom { width: 76px !important; text-align: center; border-radius: 999px !important; }
 .skill-pick { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; margin: 14px 0 4px; }
 .skill-chip {
   display: inline-flex; align-items: center; gap: 6px;
