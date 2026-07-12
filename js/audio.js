@@ -252,12 +252,12 @@ export function syncMusic() {
   else stopMusic();
 }
 
-// UI sounds: soft, round sines at low volume — felt more than heard
+// UI sounds: water droplets — a rising sine "plip" is a drop, a falling one is a sigh
 export const sfx = {
-  click: () => tone(494, { dur: 0.09, vol: 0.028, type: 'sine', glide: 0.94 }),
-  pop: () => { tone(440, { dur: 0.1, vol: 0.05, type: 'sine' }); tone(659, { t: 0.08, dur: 0.14, vol: 0.045, type: 'sine' }); },
-  start: () => { tone(392, { dur: 0.12, vol: 0.055, type: 'sine' }); tone(587, { t: 0.11, dur: 0.18, vol: 0.05, type: 'sine' }); },
+  click: () => tone(430, { dur: 0.1, vol: 0.045, type: 'sine', glide: 2.3 }),
+  pop: () => { tone(380, { dur: 0.11, vol: 0.05, type: 'sine', glide: 2.2 }); tone(520, { t: 0.09, dur: 0.13, vol: 0.045, type: 'sine', glide: 2.0 }); },
+  start: () => { tone(350, { dur: 0.12, vol: 0.05, type: 'sine', glide: 2.4 }); tone(470, { t: 0.12, dur: 0.15, vol: 0.05, type: 'sine', glide: 2.2 }); },
   chime: () => playRinger(),
   level: () => [523, 659, 784, 1047].forEach((f, i) => tone(f, { t: i * 0.09, dur: 0.32, vol: 0.09, type: 'sine' })),
-  uhoh: () => { tone(330, { dur: 0.14, vol: 0.045, type: 'sine' }); tone(277, { t: 0.13, dur: 0.2, vol: 0.045, type: 'sine' }); },
+  uhoh: () => { tone(500, { dur: 0.14, vol: 0.045, type: 'sine', glide: 0.62 }); tone(400, { t: 0.13, dur: 0.18, vol: 0.04, type: 'sine', glide: 0.7 }); },
 };
