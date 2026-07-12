@@ -429,6 +429,18 @@ details.done-details summary:hover { color: var(--ink); }
 .dur-chip:hover { border-color: var(--olive); }
 .dur-chip.sel { border-color: var(--olive); background: var(--olive-soft); color: var(--olive-2); }
 .dur-custom { width: 76px !important; text-align: center; border-radius: 999px !important; }
+.focus-tabs {
+  display: inline-flex; gap: 4px; padding: 4px; margin-bottom: 12px;
+  background: var(--card-2); border: 1.5px solid var(--line); border-radius: 999px;
+}
+.focus-tab {
+  border: none; background: transparent; color: var(--muted); cursor: pointer;
+  font-family: inherit; font-size: 13px; font-weight: 700;
+  padding: 7px 16px; border-radius: 999px; transition: background 0.12s, color 0.12s;
+}
+.focus-tab:hover { color: var(--ink); }
+.focus-tab.sel { background: var(--olive-soft); color: var(--olive-2); }
+[data-theme="light"] .focus-tab.sel, :root:not([data-theme="dark"]) .focus-tab.sel { background: var(--olive); color: #FFFEF8; }
 .skill-pick { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; margin: 14px 0 4px; }
 .skill-chip {
   display: inline-flex; align-items: center; gap: 6px;

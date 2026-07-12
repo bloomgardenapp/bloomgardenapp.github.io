@@ -15,6 +15,9 @@ let selDur = 25;
 let selMode = 'single'; // 'single' | 'cycle'
 let selBreak = 5;
 let selFirst = 'study'; // 'study' | 'break' — cycles can ease in with the break first (à la Pomofocus)
+let selTab = 'focus'; // 'focus' | 'short' | 'long' — Pomofocus-style tabs; breaks run standalone
+let selShort = 5;
+let selLong = 15;
 let uiInterval = null;
 
 // ---------- engine (used globally via main.js tick) ----------
@@ -52,6 +55,16 @@ export function completeTimer() {
   const name = sk ? sk.name : 'your plant';
 
   if ((t.phase || 'work') === 'break') {
+    if (t.mode !== 'cycle') {
+      // standalone break (the Break tab) — just ends, nothing to log
+      store.state.timer = null;
+      document.title = 'Bloom';
+      sfx.chime();
+      notifyBG('Break over', 'Fresh and ready to grow.');
+      toast('Break over — fresh and ready', 'leaf');
+      store.save();
+      return;
+    }
     // break over → next round starts by itself (round 0 = break-first warmup → round 1)
     const round = (t.round ?? 1) + 1;
     store.state.timer = {
@@ -104,6 +117,17 @@ function startTimer(skillId, minutes) {
   store.save();
 }
 
+function startBreak(minutes) {
+  const sec = Math.round(minutes * 60);
+  store.state.timer = {
+    skillId: null, durationSec: sec, workSec: 0, breakSec: sec,
+    mode: 'single', phase: 'break', round: 1,
+    startedAt: Date.now(), pausedAt: null, pausedTotal: 0,
+  };
+  sfx.start();
+  store.save();
+}
+
 function togglePause() {
   const t = store.state.timer;
   if (!t) return;
@@ -128,7 +152,7 @@ async function endEarly({ discardable } = {}) {
     store.state.timer = null;
     document.title = 'Bloom';
     store.save();
-    toast('Cycle ended — well grown', 'leaf');
+    toast(t.mode === 'cycle' ? 'Cycle ended — well grown' : 'Break ended', 'leaf');
     return;
   }
   const elapsedMin = Math.floor(timerElapsedSec() / 60);
@@ -323,7 +347,7 @@ export async function openPip() {
     const phase = tt.phase || 'work';
     const rem = timerRemaining();
     const progress = tt.durationSec > 0 ? 1 - rem / tt.durationSec : 1;
-    const sk = skillById(tt.skillId);
+    const sk = skillById(tt.skillId) || { name: 'break', icon: 'leaf', color: '#7FA98F', id: 'break', species: 'fern' };
     doc.body.classList.toggle('pip-dark', (document.documentElement.dataset.theme || 'light') === 'dark'); // follow live theme
     // the plant grows live: elapsed work minutes count as XP toward the next level
     if (sk) {
@@ -405,7 +429,9 @@ function runningCard() {
       ? el('h2', {}, 'Little ', el('em', {}, 'break'), ' ', ic('leaf', { size: 16, cls: 'title-ic' }))
       : el('h2', {}, 'Growing ', el('em', {}, sk.name), ' ', el('span', { class: 'pulse-drop' }, ic('drop', { size: 16, cls: 'title-ic' })));
   const subText = onBreak
-    ? (t.round === 0 ? `warm-up break · ${sk.name} starts after this` : `round ${t.round || 1} done · back to ${sk.name} after this`)
+    ? (t.mode !== 'cycle' ? 'just a breather — nothing gets logged'
+      : t.round === 0 ? `warm-up break · ${sk.name} starts after this`
+      : `round ${t.round || 1} done · back to ${sk.name} after this`)
     : t.mode === 'cycle'
       ? `round ${t.round || 1} · ${fmtMin(Math.round(t.workSec / 60))} work + ${fmtMin(Math.round(t.breakSec / 60))} break, repeating`
       : `${fmtMin(Math.round(t.durationSec / 60))} session · every minute = 1 XP`;
@@ -426,7 +452,7 @@ function runningCard() {
       pipSupported()
         ? el('button', { class: 'btn', id: 'timer-pip-btn', title: 'Pop out a floating timer — stays on top while you work in other apps', onClick: openPip }, ic('pip', { size: 13 }), 'Pop out')
         : null,
-      el('button', { class: 'btn btn-danger', id: 'timer-end-btn', onClick: () => endEarly({ discardable: true }) }, onBreak ? 'End cycle' : 'End'),
+      el('button', { class: 'btn btn-danger', id: 'timer-end-btn', onClick: () => endEarly({ discardable: true }) }, onBreak ? (t.mode === 'cycle' ? 'End cycle' : 'End break') : 'End'),
     ),
   );
 }
@@ -512,7 +538,45 @@ function setupCard() {
   }, '');
   refreshDur();
 
+  // Pomofocus-style tabs: Focus grows a plant; the break tabs run a simple standalone timer
+  const tabRow = el('div', { class: 'focus-tabs' },
+    ...[['focus', 'Focus'], ['short', 'Short break'], ['long', 'Long break']].map(([v, label]) => el('button', {
+      class: 'focus-tab' + (selTab === v ? ' sel' : ''), dataset: { tab: v },
+      onClick: () => { if (selTab !== v) { selTab = v; sfx.click(); store.notify(); } },
+    }, label)),
+  );
+
+  if (selTab !== 'focus') {
+    const isShort = selTab === 'short';
+    const presets = isShort ? [5, 10] : [15, 20, 30];
+    const getSel = () => (isShort ? selShort : selLong);
+    const setSel = (v) => { if (isShort) selShort = v; else selLong = v; };
+    const bCustom = el('input', {
+      class: 'input dur-custom', type: 'number', min: '1', max: '120', 'aria-label': 'custom break minutes',
+      placeholder: '---', value: presets.includes(getSel()) ? '' : getSel(),
+      onInput: (e) => { const v = parseInt(e.target.value, 10); if (v > 0) { setSel(Math.min(v, 120)); syncB(); } },
+    });
+    const bChips = presets.map((b) => el('button', {
+      class: 'dur-chip' + (b === getSel() ? ' sel' : ''), dataset: { brk: b },
+      onClick: () => { setSel(b); bCustom.value = ''; sfx.click(); syncB(); },
+    }, `${b}m`));
+    const bStart = el('button', { class: 'btn btn-primary btn-big', id: 'break-start-btn', onClick: () => startBreak(getSel()) }, '');
+    const syncB = () => {
+      bChips.forEach((c) => c.classList.toggle('sel', parseInt(c.dataset.brk, 10) === getSel()));
+      bStart.textContent = `Start ${getSel()}m break`;
+    };
+    syncB();
+    return el('div', { class: 'card focus-hero' },
+      tabRow,
+      el('h2', {}, 'Take a ', el('em', { class: 'squiggle' }, 'break'), ' ', ic('leaf', { size: 16, cls: 'title-ic' })),
+      el('p', { class: 'muted', style: { marginTop: '10px' } }, 'Rest is part of growing. Nothing gets logged — just breathe.'),
+      el('div', { class: 'dur-chips' }, ...bChips, bCustom),
+      el('div', { style: { marginTop: '14px' } }, bStart),
+    );
+  }
+
   return el('div', { class: 'card focus-hero' },
+    tabRow,
     el('h2', {}, 'Grow some ', el('em', { class: 'squiggle' }, 'focus')),
     el('p', { class: 'muted', style: { marginTop: '10px' } }, 'Pick a plant, pick a time. Every focused minute becomes XP.'),
     s.skills.length
