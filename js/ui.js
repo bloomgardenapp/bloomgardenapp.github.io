@@ -53,3 +53,24 @@ export function confirmDialog(message, { yes = 'Delete', no = 'Cancel', danger =
     const close = openModal(content, { onClose: () => finish(false) });
   });
 }
+
+// Google-Calendar-style chooser for repeating things: resolves the picked
+// choice's value, or null on cancel. choices: [{ label, value, danger? }]
+export function choiceDialog(message, choices) {
+  return new Promise((resolve) => {
+    let done = false;
+    const finish = (val, close) => { if (!done) { done = true; resolve(val); } close?.(); };
+    const content = el('div', {},
+      el('p', { class: 'confirm-msg' }, message),
+      el('div', { class: 'col', style: { gap: '8px' } },
+        ...choices.map((c) => el('button', {
+          class: c.danger ? 'btn btn-danger' : 'btn',
+          style: { justifyContent: 'center' },
+          onClick: () => finish(c.value, close),
+        }, c.label)),
+        el('button', { class: 'link-btn', style: { alignSelf: 'center', marginTop: '2px' }, onClick: () => finish(null, close) }, 'cancel'),
+      ),
+    );
+    const close = openModal(content, { onClose: () => finish(null) });
+  });
+}

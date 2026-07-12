@@ -167,6 +167,7 @@ export function eventOccursOn(ev, date) {
   if (ev.except && ev.except.includes(date)) return false;
   if (!ev.repeat) return ev.date === date;
   if (date < ev.date) return false;
+  if (ev.until && date > ev.until) return false; // series ended ("this and following" removals)
   if (ev.repeat === 'daily') return true;
   if (ev.repeat === 'weekly') return fromYmd(date).getDay() === fromYmd(ev.date).getDay();
   if (ev.repeat === 'monthly') return date.slice(8) === ev.date.slice(8);

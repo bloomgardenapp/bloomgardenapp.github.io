@@ -1,7 +1,7 @@
 // views/calendar.js — month grid where events, task due-dates and focus sessions all meet.
 import { el, ymd, fromYmd, todayYmd, fmtMonth, fmtDate, fmtMin, fmtTime, parseTimeInput, pad2, addDays, dayDiff, eventOccursOn } from '../util.js';
 import { store, uid, PALETTE } from '../store.js';
-import { confirmDialog, toast } from '../ui.js';
+import { confirmDialog, choiceDialog, toast } from '../ui.js';
 import { sfx } from '../audio.js';
 import { skillById, minutesOn } from '../progress.js';
 import { skillSelect } from '../skillEditor.js';
@@ -13,10 +13,11 @@ let viewY = now.getFullYear();
 let viewM = now.getMonth();
 let selected = todayYmd();
 let editingId = null;
-const eventDraft = { title: '', time: '', ampm: 'pm', color: '#D89B8A' };
+const eventDraft = { title: '', time: '', ampm: 'pm', color: '#D89B8A', important: false };
 
 function eventsOn(date) {
-  return store.state.events.filter((e) => eventOccursOn(e, date)).sort((a, b) => (a.time || '').localeCompare(b.time || ''));
+  return store.state.events.filter((e) => eventOccursOn(e, date))
+    .sort((a, b) => (b.important ? 1 : 0) - (a.important ? 1 : 0) || (a.time || '').localeCompare(b.time || ''));
 }
 function tasksDue(date) {
   return store.state.tasks.filter((t) => t.due === date).sort((a, b) => Number(a.done) - Number(b.done) || b.priority - a.priority);
@@ -40,8 +41,8 @@ function monthGrid(rr) {
 
     // event names in the cell (up to 3, then "+N more"); tasks-due & focus stay small dots
     const MAXEV = 3;
-    const evChips = evs.slice(0, MAXEV).map((ev) => el('div', { class: 'cal-ev' },
-      el('span', { class: 'cal-ev-dot', style: { background: ev.color } }),
+    const evChips = evs.slice(0, MAXEV).map((ev) => el('div', { class: 'cal-ev' + (ev.important ? ' imp' : '') },
+      ev.important ? el('span', { class: 'cal-ev-star' }, '★') : el('span', { class: 'cal-ev-dot', style: { background: ev.color } }),
       el('span', { class: 'cal-ev-t' }, ev.title),
     ));
     const moreN = evs.length - Math.min(evs.length, MAXEV);
@@ -180,6 +181,19 @@ function dayPanel(rr) {
       },
     })),
   );
+  let evImportant = editing ? !!editing.important : !!eventDraft.important;
+  const impBtn = el('button', {
+    type: 'button', id: 'event-imp-btn',
+    class: 'chip chip-btn' + (evImportant ? ' sel' : ''),
+    title: 'Important events get a star and sort first',
+    onClick: (e) => {
+      evImportant = !evImportant;
+      if (!editing) eventDraft.important = evImportant;
+      e.currentTarget.classList.toggle('sel', evImportant);
+      e.currentTarget.firstChild.textContent = evImportant ? '★' : '☆';
+      sfx.click();
+    },
+  }, el('span', {}, evImportant ? '★' : '☆'), ' important');
   const repeatSel = el('select', { class: 'input', id: 'event-repeat-in', style: { width: 'auto' }, onChange: (e) => { if (!editing) eventDraft.repeat = e.target.value; } },
     el('option', { value: '' }, 'once'),
     el('option', { value: 'daily' }, 'daily'),
@@ -188,7 +202,7 @@ function dayPanel(rr) {
   );
   repeatSel.value = editing ? (editing.repeat || '') : (eventDraft.repeat || '');
 
-  function submit() {
+  async function submit() {
     const title = titleIn.value.trim();
     if (!title) { sfx.uhoh(); flash(titleIn); titleIn.focus(); return; }
     const time = timeValue();
@@ -199,12 +213,30 @@ function dayPanel(rr) {
       timeIn.focus();
       return;
     }
+    const vals = { title, time, color: evColor, important: evImportant, repeat: repeatSel.value || null };
     if (editing) {
-      Object.assign(editing, { title, time, color: evColor, repeat: repeatSel.value || null });
+      // repeating event: ask what the edit applies to (like Google Calendar)
+      if (editing.repeat && vals.repeat) {
+        const scope = await choiceDialog(`“${editing.title}” repeats ${editing.repeat} — change what?`, [
+          { label: 'Just this day', value: 'one' },
+          { label: 'All days', value: 'all' },
+        ]);
+        if (!scope) return;
+        if (scope === 'one') {
+          editing.except = editing.except || [];
+          editing.except.push(selected);
+          store.state.events.push({ id: uid(), ...vals, repeat: null, date: selected, except: [], createdAt: new Date().toISOString() });
+          editingId = null;
+          sfx.click();
+          store.save();
+          return;
+        }
+      }
+      Object.assign(editing, vals);
       editingId = null;
     } else {
-      store.state.events.push({ id: uid(), title, date: selected, time, color: evColor, repeat: repeatSel.value || null, except: [], createdAt: new Date().toISOString() });
-      Object.assign(eventDraft, { title: '', time: '', color: '#D89B8A', repeat: '' });
+      store.state.events.push({ id: uid(), ...vals, date: selected, except: [], createdAt: new Date().toISOString() });
+      Object.assign(eventDraft, { title: '', time: '', color: '#D89B8A', repeat: '', important: false });
     }
     sfx.click();
     store.save();
@@ -236,26 +268,40 @@ function dayPanel(rr) {
       ? el('div', {}, ...evs.map((ev) => el('div', { class: 'event-row' },
           el('div', { class: 'event-bar', style: { background: ev.color } }),
           el('span', { class: 'event-time' }, ev.time ? fmtTime(ev.time, store.state.settings.hour24) : 'all day'),
-          el('span', { class: 'event-title' }, ev.title, ev.repeat ? el('span', { class: 'chip lilac', style: { marginLeft: '7px' } }, ic('repeat', { size: 10 }), ev.repeat) : null),
+          el('span', { class: 'event-title' },
+            ev.important ? el('span', { class: 'event-star', title: 'important' }, '★ ') : null,
+            ev.title,
+            ev.repeat ? el('span', { class: 'chip lilac', style: { marginLeft: '7px' } }, ic('repeat', { size: 10 }), ev.repeat) : null),
           el('div', { class: 'task-actions' },
-            ev.repeat ? el('button', {
-              class: 'icon-btn', 'aria-label': 'Skip this day', title: 'Skip just this day',
-              onClick: () => {
-                ev.except = ev.except || [];
-                ev.except.push(selected);
-                store.save();
-                toast(`Skipped for ${fmtDate(selected)}`, 'leaf');
-              },
-            }, ic('x-circle', { size: 14 })) : null,
             el('button', { class: 'icon-btn', 'aria-label': 'Edit event', onClick: () => { editingId = ev.id; rr(); } }, ic('pencil', { size: 14 })),
             el('button', {
               class: 'icon-btn', 'aria-label': 'Delete event',
               onClick: async () => {
-                const msg = ev.repeat ? `“${ev.title}” repeats ${ev.repeat} — delete the whole series?` : `Delete “${ev.title}”?`;
-                if (await confirmDialog(msg, { yes: ev.repeat ? 'Delete series' : 'Delete' })) {
-                  store.state.events = store.state.events.filter((x) => x.id !== ev.id);
-                  store.save();
+                if (!ev.repeat) {
+                  if (await confirmDialog(`Delete “${ev.title}”?`)) {
+                    store.state.events = store.state.events.filter((x) => x.id !== ev.id);
+                    store.save();
+                  }
+                  return;
                 }
+                // repeating event: delete what? (like Google Calendar)
+                const scope = await choiceDialog(`“${ev.title}” repeats ${ev.repeat} — delete what?`, [
+                  { label: 'Just this day', value: 'one' },
+                  { label: 'This and all following days', value: 'following' },
+                  { label: 'All days', value: 'all', danger: true },
+                ]);
+                if (!scope) return;
+                if (scope === 'one') {
+                  ev.except = ev.except || [];
+                  ev.except.push(selected);
+                  toast(`Skipped for ${fmtDate(selected)}`, 'leaf');
+                } else if (scope === 'following') {
+                  if (selected <= ev.date) store.state.events = store.state.events.filter((x) => x.id !== ev.id);
+                  else { ev.until = addDays(selected, -1); toast(`“${ev.title}” now ends ${fmtDate(ev.until)}`, 'leaf'); }
+                } else {
+                  store.state.events = store.state.events.filter((x) => x.id !== ev.id);
+                }
+                store.save();
               },
             }, ic('trash', { size: 14 })),
           ),
@@ -263,7 +309,7 @@ function dayPanel(rr) {
       : el('p', { class: 'muted small', style: { padding: '2px 4px 6px' } }, 'Nothing scheduled.'),
     el('div', { class: 'col', style: { gap: '8px', marginTop: '6px' } },
       titleIn,
-      el('div', { class: 'row gap wrap', style: { alignItems: 'center' } }, timeIn, ampmChips, repeatSel),
+      el('div', { class: 'row gap wrap', style: { alignItems: 'center' } }, timeIn, ampmChips, repeatSel, impBtn),
       colorRow,
       el('div', { class: 'row gap' },
         addBtn,
