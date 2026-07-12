@@ -8,7 +8,7 @@ function ac() {
   return ctx;
 }
 
-function tone(freq, { t = 0, dur = 0.15, type = 'sine', vol = 0.16, glide = 0 } = {}) {
+function tone(freq, { t = 0, dur = 0.15, type = 'sine', vol = 0.16, glide = 0, lp = 0 } = {}) {
   if (!store.state.settings.sound) return;
   try {
     const c = ac();
@@ -21,9 +21,32 @@ function tone(freq, { t = 0, dur = 0.15, type = 'sine', vol = 0.16, glide = 0 } 
     g.gain.setValueAtTime(0.0001, start);
     g.gain.exponentialRampToValueAtTime(vol, start + 0.02);
     g.gain.exponentialRampToValueAtTime(0.0001, start + dur);
-    o.connect(g).connect(c.destination);
+    let head = o;
+    if (lp) { const f = c.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = lp; o.connect(f); head = f; }
+    head.connect(g).connect(c.destination);
     o.start(start);
     o.stop(start + dur + 0.05);
+  } catch { /* audio blocked — fine */ }
+}
+
+// the tiny contact noise that makes a synth tone read as a physical "tok"
+function tap({ t = 0, dur = 0.015, vol = 0.02, freq = 2000 } = {}) {
+  if (!store.state.settings.sound) return;
+  try {
+    const c = ac();
+    const len = Math.max(1, (c.sampleRate * dur) | 0);
+    const buf = c.createBuffer(1, len, c.sampleRate);
+    const d = buf.getChannelData(0);
+    for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / len);
+    const s = c.createBufferSource();
+    s.buffer = buf;
+    const f = c.createBiquadFilter();
+    f.type = 'lowpass';
+    f.frequency.value = freq;
+    const g = c.createGain();
+    g.gain.value = vol;
+    s.connect(f).connect(g).connect(c.destination);
+    s.start(c.currentTime + t);
   } catch { /* audio blocked — fine */ }
 }
 
@@ -252,12 +275,16 @@ export function syncMusic() {
   else stopMusic();
 }
 
-// UI sounds: water droplets — a rising sine "plip" is a drop, a falling one is a sigh
+// UI sounds: warm wood taps — a kalimba "tok" for every touch
+const tok = (f, { t = 0, vol = 0.055, dur = 0.09 } = {}) => {
+  tone(f, { t, dur, vol, type: 'triangle', lp: 1600 });
+  tap({ t, dur: 0.015, vol: vol * 0.3, freq: 2000 });
+};
 export const sfx = {
-  click: () => tone(430, { dur: 0.1, vol: 0.045, type: 'sine', glide: 2.3 }),
-  pop: () => { tone(380, { dur: 0.11, vol: 0.05, type: 'sine', glide: 2.2 }); tone(520, { t: 0.09, dur: 0.13, vol: 0.045, type: 'sine', glide: 2.0 }); },
-  start: () => { tone(350, { dur: 0.12, vol: 0.05, type: 'sine', glide: 2.4 }); tone(470, { t: 0.12, dur: 0.15, vol: 0.05, type: 'sine', glide: 2.2 }); },
+  click: () => tok(620),
+  pop: () => { tok(523); tok(784, { t: 0.09, dur: 0.12 }); },
+  start: () => { tok(440, { dur: 0.11 }); tok(587, { t: 0.11, dur: 0.14 }); },
   chime: () => playRinger(),
-  level: () => [523, 659, 784, 1047].forEach((f, i) => tone(f, { t: i * 0.09, dur: 0.32, vol: 0.09, type: 'sine' })),
-  uhoh: () => { tone(500, { dur: 0.14, vol: 0.045, type: 'sine', glide: 0.62 }); tone(400, { t: 0.13, dur: 0.18, vol: 0.04, type: 'sine', glide: 0.7 }); },
+  level: () => [523, 659, 784, 1047].forEach((f, i) => tok(f, { t: i * 0.09, dur: 0.22, vol: 0.07 })),
+  uhoh: () => { tok(494, { dur: 0.11 }); tok(370, { t: 0.11, dur: 0.16 }); },
 };
