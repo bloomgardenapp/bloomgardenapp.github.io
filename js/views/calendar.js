@@ -38,8 +38,8 @@ function monthGrid(rr) {
     const openDue = due.filter((t) => !t.done);
     const focusMin = store.state.sessions.reduce((a, s) => a + (s.date === dY ? s.minutes : 0), 0);
 
-    // event names in the cell (up to 2, then "+N more"); tasks-due & focus stay small dots
-    const MAXEV = 2;
+    // event names in the cell (up to 3, then "+N more"); tasks-due & focus stay small dots
+    const MAXEV = 3;
     const evChips = evs.slice(0, MAXEV).map((ev) => el('div', { class: 'cal-ev' },
       el('span', { class: 'cal-ev-dot', style: { background: ev.color } }),
       el('span', { class: 'cal-ev-t' }, ev.title),
@@ -98,10 +98,19 @@ function dayPanel(rr) {
   const label = diff === 0 ? 'Today · ' : diff === 1 ? 'Tomorrow · ' : diff === -1 ? 'Yesterday · ' : '';
 
   // ---- add / edit event form ----
+  const flash = (input) => {
+    input.classList.remove('invalid');
+    void input.offsetWidth; // restart the nudge animation
+    input.classList.add('invalid');
+  };
   const titleIn = el('input', {
     class: 'input', id: 'event-title-in', placeholder: editing ? 'Event title' : '＋ Add an event…',
     value: editing ? editing.title : eventDraft.title,
-    onInput: (e) => { if (!editing) eventDraft.title = e.target.value; },
+    onInput: (e) => {
+      if (!editing) eventDraft.title = e.target.value;
+      e.target.classList.remove('invalid');
+      syncAddBtn();
+    },
     onKeydown: (e) => { if (e.key === 'Enter') submit(); },
   });
   const h24 = store.state.settings.hour24;
@@ -113,11 +122,15 @@ function dayPanel(rr) {
     value: editing
       ? (editing.time ? (h24 ? editing.time : fmtTime(editing.time).replace(/ [ap]m$/, '')) : '')
       : eventDraft.time,
-    onInput: (e) => { if (!editing) eventDraft.time = e.target.value; },
+    onInput: (e) => {
+      if (!editing) eventDraft.time = e.target.value;
+      e.target.classList.remove('invalid');
+    },
     onKeydown: (e) => { if (e.key === 'Enter') submit(); },
     onBlur: () => {
       const v = timeValue();
-      if (!v) return; // blank or unparsable — leave as typed
+      if (v === undefined) { flash(timeIn); return; } // unparsable — say so right away
+      if (!v) return; // blank is fine
       if (h24) timeIn.value = v;
       else {
         const [H, M] = v.split(':').map(Number);
@@ -177,10 +190,11 @@ function dayPanel(rr) {
 
   function submit() {
     const title = titleIn.value.trim();
-    if (!title) { titleIn.focus(); return; }
+    if (!title) { sfx.uhoh(); flash(titleIn); titleIn.focus(); return; }
     const time = timeValue();
     if (time === undefined) {
       sfx.uhoh();
+      flash(timeIn);
       toast(h24 ? 'Try a time like 19:30 — or leave it blank' : 'Try a time like 7:30 — or leave it blank', 'clock');
       timeIn.focus();
       return;
@@ -195,6 +209,11 @@ function dayPanel(rr) {
     sfx.click();
     store.save();
   }
+
+  // Add stays dim until there's a name — makes "name first" obvious at a glance
+  const addBtn = el('button', { class: 'btn btn-primary', id: 'event-add-btn', onClick: submit }, editing ? 'Save event' : '＋ Add event');
+  function syncAddBtn() { addBtn.classList.toggle('dim', !titleIn.value.trim()); }
+  syncAddBtn();
 
   const quickTask = el('input', {
     class: 'input', id: 'day-quick-task', placeholder: '＋ Add a task due this day…',
@@ -247,7 +266,7 @@ function dayPanel(rr) {
       el('div', { class: 'row gap wrap', style: { alignItems: 'center' } }, timeIn, ampmChips, repeatSel),
       colorRow,
       el('div', { class: 'row gap' },
-        el('button', { class: 'btn btn-primary', id: 'event-add-btn', onClick: submit }, editing ? 'Save event' : '＋ Add event'),
+        addBtn,
         editing ? el('button', { class: 'link-btn', onClick: () => { editingId = null; rr(); } }, 'cancel') : null,
       ),
     ),

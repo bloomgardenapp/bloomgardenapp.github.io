@@ -217,6 +217,9 @@ input, select, textarea { font-family: inherit; color: inherit; }
   transition: border-color 0.15s, box-shadow 0.15s;
 }
 .input:focus { border-color: var(--olive); box-shadow: 0 0 0 3px rgba(124, 139, 79, 0.15); }
+.input.invalid, .input.invalid:focus { border-color: var(--coral-strong); box-shadow: 0 0 0 3px rgba(226, 161, 128, 0.18); animation: nudge 0.3s ease; }
+@keyframes nudge { 0%, 100% { transform: translateX(0); } 30% { transform: translateX(-3px); } 60% { transform: translateX(3px); } }
+.btn.dim { opacity: 0.55; }
 textarea.input { resize: vertical; line-height: 1.7; font-weight: 500; }
 select.input { appearance: none; background-image: linear-gradient(45deg, transparent 50%, var(--muted) 50%), linear-gradient(135deg, var(--muted) 50%, transparent 50%); background-position: calc(100% - 18px) 55%, calc(100% - 13px) 55%; background-size: 5px 5px; background-repeat: no-repeat; padding-right: 32px; }
 input[type="date"].input, input[type="time"].input, input[type="number"].input { width: auto; }
@@ -308,7 +311,7 @@ details.done-details summary:hover { color: var(--ink); }
 .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; }
 .cal-dow { text-align: center; font-size: 10px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.1em; padding: 4px 0; }
 .cal-cell {
-  min-height: 72px; border-radius: 14px; padding: 7px 7px 6px;
+  min-height: 84px; border-radius: 14px; padding: 7px 7px 6px;
   background: var(--card-2); border: 1.5px solid transparent;
   cursor: pointer; text-align: left; display: flex; flex-direction: column;
   justify-content: flex-start; align-items: flex-start; gap: 4px;
