@@ -13,6 +13,30 @@ import { taskRow } from './tasks.js';
 import { selectNote } from './notes.js';
 import { ic } from '../icons.js';
 
+// Seed → Sprout → … ladder for ONE plant, driven by that skill's own hours
+function tierStripEl(tier, capLabel, plantName) {
+  return el('div', { class: 'tier-strip' },
+    el('div', { class: 'tier-bar' }, el('div', { class: 'tier-fill', style: { width: `${Math.max(2, Math.round(tier.progress * 100))}%` } })),
+    el('div', { class: 'tier-row' },
+      el('div', { class: 'tier-side' },
+        el('div', { class: 'tier-num' }, `[0${tier.index + 1}]`),
+        el('div', { class: 'tier-name' }, ic(tier.cur.icon, { size: 15 }), ` ${tier.cur.name}`),
+        el('div', { class: 'tier-cap muted' }, capLabel),
+      ),
+      el('div', { class: 'tier-center' }, tier.next
+        ? `grow ${plantName} ${fmtMin(tier.minutesToNext)} more to reach ${tier.next.name}`
+        : `${plantName} is a whole forest`),
+      tier.next
+        ? el('div', { class: 'tier-side right' },
+            el('div', { class: 'tier-num' }, `[0${tier.index + 2}]`),
+            el('div', { class: 'tier-name' }, ic(tier.next.icon, { size: 15 }), ` ${tier.next.name}`),
+            el('div', { class: 'tier-cap muted' }, `at ${tier.next.hours}h`),
+          )
+        : null,
+    ),
+  );
+}
+
 function openSkillDetails(sk) {
   const lv = levelOf(sk.id);
   const sessions = store.state.sessions.filter((s) => s.skillId === sk.id).sort((a, b) => (b.at || '').localeCompare(a.at || ''));
@@ -35,6 +59,7 @@ function openSkillDetails(sk) {
         el('div', { class: 'xp-fill', style: { width: `${Math.round((lv.into / lv.need) * 100)}%` } })),
       el('div', { class: 'muted small' }, `${lv.need - lv.into} XP to level ${lv.level + 1} — that's ~${fmtMin(lv.need - lv.into)} of focus`),
     ),
+    tierStripEl(gardenTier(sk.id), `${sk.name} now`, sk.name),
     el('div', { class: 'field-label' }, 'Last 14 days'),
     el('div', { html: barChartSVG(lastNDays(14, sk.id), labels14, { h: 56 }) }),
     el('div', { class: 'field-label' }, `Sessions · ${sessions.length}`),
@@ -112,7 +137,8 @@ export function render(root) {
   const skills = [...s.skills].sort((a, b) => weekMinutes(b.id) - weekMinutes(a.id) || xpOf(b.id) - xpOf(a.id));
   const st = streak();
   const total = minutesTotal();
-  const tier = gardenTier();
+  const topSk = skills[0] || null;
+  const tier = gardenTier(topSk?.id ?? null);
 
   // ---- the garden itself: your real plants in the meadow (hills only while empty) ----
   const grown = total > 0;
@@ -136,27 +162,8 @@ export function render(root) {
     ),
   );
 
-  // ---- GOBE-style tier strip ----
-  const tierStrip = el('div', { class: 'tier-strip' },
-    el('div', { class: 'tier-bar' }, el('div', { class: 'tier-fill', style: { width: `${Math.max(2, Math.round(tier.progress * 100))}%` } })),
-    el('div', { class: 'tier-row' },
-      el('div', { class: 'tier-side' },
-        el('div', { class: 'tier-num' }, `[0${tier.index + 1}]`),
-        el('div', { class: 'tier-name' }, ic(tier.cur.icon, { size: 15 }), ` ${tier.cur.name}`),
-        el('div', { class: 'tier-cap muted' }, 'your garden now'),
-      ),
-      el('div', { class: 'tier-center' }, tier.next
-        ? `grow ${fmtMin(tier.minutesToNext)} more to reach ${tier.next.name}`
-        : 'your garden is a whole forest'),
-      tier.next
-        ? el('div', { class: 'tier-side right' },
-            el('div', { class: 'tier-num' }, `[0${tier.index + 2}]`),
-            el('div', { class: 'tier-name' }, ic(tier.next.icon, { size: 15 }), ` ${tier.next.name}`),
-            el('div', { class: 'tier-cap muted' }, `at ${tier.next.hours}h`),
-          )
-        : null,
-    ),
-  );
+  // ---- GOBE-style tier strip (per plant — the top plant's own hours) ----
+  const tierStrip = topSk ? tierStripEl(tier, `${topSk.name} now`, topSk.name) : null;
 
   root.append(
     el('div', { class: 'view-head' },

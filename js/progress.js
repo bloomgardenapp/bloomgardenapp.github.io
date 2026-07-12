@@ -81,8 +81,8 @@ export const TIERS = [
   { name: 'Meadow', icon: 'daisy', hours: 100 },
   { name: 'Forest', icon: 'pine', hours: 250 },
 ];
-export function gardenTier() {
-  const h = minutesTotal() / 60;
+export function gardenTier(skillId = null) {
+  const h = minutesTotal(skillId) / 60; // per-plant when a skill is given
   let i = 0;
   while (i + 1 < TIERS.length && h >= TIERS[i + 1].hours) i++;
   const cur = TIERS[i], next = TIERS[i + 1] || null;
