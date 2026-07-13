@@ -300,23 +300,22 @@ const PIP_CSS = `
   html, body { height: 100%; }
   body { font-family: 'Quicksand', system-ui, sans-serif; background: #F4F0E2; color: #4A5238;
     display: flex; flex-direction: column; overflow: hidden; }
-  .pip-wrap { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 7px; padding: 8px 12px; text-align: center; }
-  .pip-main { display: flex; align-items: center; gap: 11px; }
-  .pip-plant { width: 62px; height: 78px; flex-shrink: 0; display: flex; align-items: flex-end; justify-content: center; }
-  .pip-plant svg { width: 62px; height: 78px; display: block; }
-  .pip-info { display: flex; flex-direction: column; align-items: flex-start; gap: 1px; }
-  .pip-time { font-family: 'Fraunces', Georgia, serif; font-size: 40px; font-weight: 600; line-height: 1; color: #3A422C; font-variant-numeric: tabular-nums; }
-  .pip-label { font-size: 11.5px; font-weight: 600; color: #8F937D; }
+  /* zen-style: one centered column — nothing can nudge anything else sideways */
+  .pip-wrap { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; padding: 10px 12px; text-align: center; }
+  .pip-plant { width: 64px; height: 64px; display: flex; align-items: flex-end; justify-content: center; overflow: hidden; }
+  .pip-plant svg { width: 56px; height: 70px; display: block; }
+  .pip-time { font-family: 'Fraunces', Georgia, serif; font-size: 36px; font-weight: 600; line-height: 1.05; color: #3A422C; font-variant-numeric: tabular-nums; }
+  .pip-label { font-size: 11.5px; font-weight: 600; color: #8F937D; max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .pip-btn { font-family: inherit; font-size: 12px; font-weight: 700; border: 1.5px solid rgba(96,108,62,0.32);
     background: transparent; color: #4A5238; border-radius: 999px; padding: 5px 18px; cursor: pointer; margin-top: 2px; }
   .pip-btn:hover { background: rgba(124,139,79,0.14); }
   .pip-bar { height: 5px; width: 100%; background: rgba(96,108,62,0.16); }
   .pip-bar-fill { height: 100%; width: 0%; background: #7C8B4F; transition: width 0.25s linear; }
-  body.pip-dark { background: #14180E; color: #EAEEDB; }
-  body.pip-dark .pip-time { color: #FAFBF1; }
-  body.pip-dark .pip-label { color: #A9B18F; }
-  body.pip-dark .pip-btn { color: #EAEEDB; border-color: rgba(234,238,219,0.32); }
-  body.pip-dark .pip-bar { background: rgba(234,238,219,0.14); }
+  body.pip-dark { background: #161513; color: #EAE6DD; }
+  body.pip-dark .pip-time { color: #FAF7F0; }
+  body.pip-dark .pip-label { color: #A8A296; }
+  body.pip-dark .pip-btn { color: #EAE6DD; border-color: rgba(234,230,221,0.32); }
+  body.pip-dark .pip-bar { background: rgba(234,230,221,0.14); }
 `;
 
 export async function openPip() {
@@ -326,7 +325,7 @@ export async function openPip() {
   pipOpening = true;
   let win;
   try {
-    win = await documentPictureInPicture.requestWindow({ width: 272, height: 194 });
+    win = await documentPictureInPicture.requestWindow({ width: 232, height: 236 });
   } catch {
     toast('Could not open the pop-out', 'hourglass');
     return;
@@ -350,10 +349,7 @@ export async function openPip() {
   const pauseBtn = el('button', { class: 'pip-btn', onClick: () => togglePause() }, 'Pause');
   const barFill = el('div', { class: 'pip-bar-fill' });
   doc.body.append(
-    el('div', { class: 'pip-wrap' },
-      el('div', { class: 'pip-main' }, plantWrap, el('div', { class: 'pip-info' }, timeEl, labelEl)),
-      pauseBtn,
-    ),
+    el('div', { class: 'pip-wrap' }, plantWrap, timeEl, labelEl, pauseBtn),
     el('div', { class: 'pip-bar' }, barFill),
   );
 
