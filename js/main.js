@@ -391,37 +391,12 @@ function buildSidebar() {
     el('button', { class: 'icon-btn', 'aria-label': 'Settings', id: 'settings-btn', onClick: openSettings }, ic('gear', { size: 16 })),
   ));
 
-  // drag the sidebar's right edge to resize it — below ~140px it snaps into the icon rail
-  const drag = el('div', { class: 'sb-drag', title: 'Drag to resize' });
-  drag.addEventListener('pointerdown', (e) => {
-    e.preventDefault();
-    drag.setPointerCapture(e.pointerId);
-    document.body.classList.add('sb-dragging');
-    const move = (ev) => {
-      const s = store.state.settings;
-      if (ev.clientX < 140) s.sidebarCollapsed = true;
-      else { s.sidebarCollapsed = false; s.sidebarWidth = Math.min(300, Math.max(160, Math.round(ev.clientX))); }
-      applySidebar();
-    };
-    const up = (ev) => {
-      drag.releasePointerCapture(ev.pointerId);
-      drag.removeEventListener('pointermove', move);
-      drag.removeEventListener('pointerup', up);
-      document.body.classList.remove('sb-dragging');
-      store.save(true); // remember the width
-    };
-    drag.addEventListener('pointermove', move);
-    drag.addEventListener('pointerup', up);
-  });
-  aside.append(drag);
   applySidebar();
 }
 
 function applySidebar() {
-  const s = store.state.settings;
-  const collapsed = !!s.sidebarCollapsed;
+  const collapsed = !!store.state.settings.sidebarCollapsed;
   document.getElementById('app').classList.toggle('sidebar-collapsed', collapsed);
-  document.documentElement.style.setProperty('--sbw', `${Math.min(300, Math.max(160, s.sidebarWidth || 216))}px`);
   const btn = document.getElementById('sidebar-toggle');
   if (btn) {
     btn.firstChild.style.transform = collapsed ? '' : 'rotate(180deg)'; // ‹ collapse when open, › expand when closed

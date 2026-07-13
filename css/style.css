@@ -125,7 +125,7 @@ input, select, textarea { font-family: inherit; color: inherit; }
 .wrap { flex-wrap: wrap; }
 
 /* ============ layout ============ */
-#app { display: grid; grid-template-columns: var(--sbw, 216px) 1fr; min-height: 100vh; }
+#app { display: grid; grid-template-columns: 216px 1fr; min-height: 100vh; }
 #view { padding: 30px 32px 70px; max-width: 1080px; width: 100%; margin: 0 auto; min-width: 0; }
 
 /* ============ sidebar ============ */
@@ -780,14 +780,6 @@ details.done-details summary:hover { color: var(--ink); }
   .day-panel { position: static; }
 }
 /* manual collapse — only on wide desktop (narrower screens already rail/tab automatically) */
-.sb-drag { display: none; }
-@media (min-width: 1061px) {
-  .sb-drag { display: block; position: absolute; top: 0; right: -4px; width: 9px; height: 100%; cursor: col-resize; z-index: 42; touch-action: none; }
-  .sb-drag::after { content: ''; position: absolute; left: 3px; top: 0; width: 3px; height: 100%; border-radius: 2px; background: transparent; transition: background 0.15s; }
-  .sb-drag:hover::after, body.sb-dragging .sb-drag::after { background: var(--olive); opacity: 0.55; }
-  body.sb-dragging { cursor: col-resize; user-select: none; }
-  body.sb-dragging #app { transition: none; }
-}
 #sidebar-toggle { display: none; margin-left: auto; flex-shrink: 0; }
 #sidebar-toggle .ic svg { transition: transform 0.2s ease; }
 @media (min-width: 1061px) {
