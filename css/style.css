@@ -497,7 +497,9 @@ details.done-details summary:hover { color: var(--ink); }
 .garden-banner > div > svg { display: block; width: 100%; height: 212px; }
 /* scene mode: the banner IS the garden — your plants stand in the meadow, text stays up top */
 .garden-banner.scene > div > svg { height: 256px; }
-.garden-banner.scene .banner-overlay { justify-content: flex-start; padding: 22px 20px 0; pointer-events: none; }
+/* text sits up top in both states — empty (hills) and grown (scene) */
+.garden-banner .banner-overlay { justify-content: flex-start; padding: 22px 20px 0; }
+.garden-banner.scene .banner-overlay { pointer-events: none; }
 .scene-plant { cursor: pointer; }
 .scene-tip {
   position: absolute; transform: translate(-50%, -100%);
