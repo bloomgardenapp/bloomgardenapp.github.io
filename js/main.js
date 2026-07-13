@@ -388,7 +388,26 @@ function buildSidebar() {
     el('button', { class: 'icon-btn', 'aria-label': 'Guide', id: 'guide-btn', title: 'Show me around', onClick: () => { sfx.click(); startTour(); } }, ic('help', { size: 16 })),
     themeBtn,
     el('button', { class: 'icon-btn', 'aria-label': 'Settings', id: 'settings-btn', onClick: openSettings }, ic('gear', { size: 16 })),
+    el('button', { class: 'icon-btn', id: 'sidebar-toggle', 'aria-label': 'Collapse sidebar', title: 'Collapse sidebar', onClick: toggleSidebar }, ic('arrow', { size: 16 })),
   ));
+  applySidebar();
+}
+
+function applySidebar() {
+  const collapsed = !!store.state.settings.sidebarCollapsed;
+  document.getElementById('app').classList.toggle('sidebar-collapsed', collapsed);
+  const btn = document.getElementById('sidebar-toggle');
+  if (btn) {
+    btn.firstChild.style.transform = collapsed ? '' : 'rotate(180deg)'; // ‹ collapse when open, › expand when closed
+    btn.title = btn.ariaLabel = collapsed ? 'Expand sidebar' : 'Collapse sidebar';
+  }
+}
+
+function toggleSidebar() {
+  store.state.settings.sidebarCollapsed = !store.state.settings.sidebarCollapsed;
+  store.save(true);
+  sfx.click();
+  applySidebar();
 }
 
 function updateNav() {

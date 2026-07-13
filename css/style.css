@@ -779,6 +779,22 @@ details.done-details summary:hover { color: var(--ink); }
   .cal-wrap { grid-template-columns: 1fr; }
   .day-panel { position: static; }
 }
+/* manual collapse — only on wide desktop (narrower screens already rail/tab automatically) */
+#sidebar-toggle { display: none; }
+#sidebar-toggle .ic svg { transition: transform 0.2s ease; }
+@media (min-width: 1061px) {
+  #sidebar-toggle { display: inline-flex; }
+  #app.sidebar-collapsed { grid-template-columns: 68px 1fr; }
+  #app.sidebar-collapsed #sidebar { padding: 18px 8px 14px; align-items: center; }
+  #app.sidebar-collapsed .logo { padding: 0 0 16px; }
+  #app.sidebar-collapsed .logo em, #app.sidebar-collapsed .logo span:not(.logo-flower) { display: none; }
+  #app.sidebar-collapsed .nav-item { justify-content: center; padding: 11px 0; }
+  #app.sidebar-collapsed .nav-item span:not(.nav-emoji) { display: none; }
+  #app.sidebar-collapsed .nav-item .nav-emoji { width: auto; font-size: 18px; }
+  #app.sidebar-collapsed .nav-timer-chip { padding: 6px 4px; font-size: 10.5px; margin: 8px 2px 0; width: calc(100% - 4px); }
+  #app.sidebar-collapsed .sidebar-foot { flex-direction: column; gap: 2px; }
+  #app.sidebar-collapsed .sidebar-foot .streak-mini { display: none; }
+}
 @media (max-width: 900px) {
   .grid-2, .notes-wrap { grid-template-columns: 1fr; }
   h1 { font-size: 25px; }
