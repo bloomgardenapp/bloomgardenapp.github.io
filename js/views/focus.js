@@ -112,6 +112,29 @@ function startTimer(skillId, minutes) {
   store.save();
 }
 
+// Tabs live on both the setup card and the running timer. Switching away from a
+// running focus logs the elapsed minutes first — no minute wasted.
+function switchTab(target) {
+  const t = store.state.timer;
+  selTab = target;
+  if (!t) { store.notify(); return; }
+  const mins = (t.phase || 'work') === 'work' ? Math.floor(timerElapsedSec() / 60) : 0;
+  const skillId = t.skillId;
+  store.state.timer = null;
+  document.title = 'Bloom';
+  if (mins >= 1) { sfx.chime(); logSession({ skillId, minutes: mins, source: 'timer' }); }
+  else store.save();
+}
+
+function makeTabs(active) {
+  return el('div', { class: 'focus-tabs' },
+    ...[['focus', 'Focus'], ['short', 'Short break'], ['long', 'Long break']].map(([v, label]) => el('button', {
+      class: 'focus-tab' + (active === v ? ' sel' : ''), dataset: { tab: v },
+      onClick: () => { if (v !== active) { sfx.click(); switchTab(v); } },
+    }, label)),
+  );
+}
+
 function startBreak(minutes) {
   const sec = Math.round(minutes * 60);
   store.state.timer = {
@@ -432,6 +455,7 @@ function runningCard() {
       : `${fmtMin(Math.round(t.durationSec / 60))} session · every minute = 1 XP`;
 
   return el('div', { class: 'card focus-hero' },
+    makeTabs(onBreak ? (selTab === 'long' ? 'long' : 'short') : 'focus'),
     heading,
     el('p', { class: 'muted small', style: { marginTop: '4px' } }, subText),
     el('div', { class: 'timer-ring-wrap' }, svg,
@@ -497,12 +521,7 @@ function setupCard() {
   refreshDur();
 
   // Pomofocus-style tabs: Focus grows a plant; the break tabs run a simple standalone timer
-  const tabRow = el('div', { class: 'focus-tabs' },
-    ...[['focus', 'Focus'], ['short', 'Short break'], ['long', 'Long break']].map(([v, label]) => el('button', {
-      class: 'focus-tab' + (selTab === v ? ' sel' : ''), dataset: { tab: v },
-      onClick: () => { if (selTab !== v) { selTab = v; sfx.click(); store.notify(); } },
-    }, label)),
-  );
+  const tabRow = makeTabs(selTab);
 
   if (selTab !== 'focus') {
     const isShort = selTab === 'short';
