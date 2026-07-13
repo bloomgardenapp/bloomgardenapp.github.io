@@ -237,6 +237,7 @@ input[type="date"].input, input[type="time"].input, input[type="number"].input {
 .chip.sun { background: var(--sun-soft); color: #9A7E1E; }
 [data-theme="dark"] .chip.sun { color: #E3CE7B; }
 .chip-btn { cursor: pointer; border: 1.5px solid transparent; transition: transform 0.1s; }
+.chip-btn.disabled { opacity: 0.4; pointer-events: none; }
 .chip-btn:hover { transform: scale(1.05); }
 .chip-btn.sel { border-color: var(--olive); background: var(--olive-soft); color: var(--olive-2); }
 

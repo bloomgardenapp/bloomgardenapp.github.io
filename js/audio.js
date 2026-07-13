@@ -281,8 +281,9 @@ const tok = (f, { t = 0, vol = 0.055, dur = 0.09 } = {}) => {
   tap({ t, dur: 0.015, vol: vol * 0.3, freq: 2000 });
 };
 export const sfx = {
-  click: () => tok(620),
-  pop: () => { tok(523); tok(784, { t: 0.09, dur: 0.12 }); },
+  // click/pop are the incidental "tapping" feedback — silenced by the taps toggle
+  click: () => { if (store.state.settings.taps === false) return; tok(620); },
+  pop: () => { if (store.state.settings.taps === false) return; tok(523); tok(784, { t: 0.09, dur: 0.12 }); },
   start: () => { tok(440, { dur: 0.11 }); tok(587, { t: 0.11, dur: 0.14 }); },
   chime: () => playRinger(),
   level: () => [523, 659, 784, 1047].forEach((f, i) => tok(f, { t: i * 0.09, dur: 0.22, vol: 0.07 })),

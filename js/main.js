@@ -66,10 +66,25 @@ function openSettings() {
       store.save(true);
       soundChip.classList.toggle('sel', s.sound);
       soundChip.replaceChildren(ic(s.sound ? 'bell' : 'bell-off', { size: 12 }), soundLabel());
+      tapChip.classList.toggle('disabled', !s.sound);
       syncMusic();
       sfx.pop();
     },
   }, ic(s.sound ? 'bell' : 'bell-off', { size: 12 }), soundLabel());
+
+  const tapLabel = () => (s.taps !== false ? ' taps on' : ' taps off');
+  const tapChip = el('button', {
+    class: 'chip chip-btn' + (s.taps !== false ? ' sel' : '') + (s.sound ? '' : ' disabled'),
+    title: 'The little tap sound when you click around',
+    onClick: () => {
+      s.taps = s.taps === false;
+      store.save(true);
+      tapChip.classList.toggle('sel', s.taps !== false);
+      tapChip.replaceChildren(ic('bolt', { size: 12 }), tapLabel());
+      if (s.taps !== false) sfx.click();
+    },
+  }, ic('bolt', { size: 12 }), tapLabel());
+  const soundRow = el('div', { class: 'row gap wrap' }, soundChip, tapChip);
 
   const hourRow = el('div', { class: 'row gap' });
   const hourChips = [[false, '12-hour · 3:00 pm'], [true, '24-hour · 15:00']].map(([v, label]) => el('button', {
@@ -221,7 +236,7 @@ function openSettings() {
     el('div', { class: 'field-label' }, 'Theme'),
     themeRow,
     el('div', { class: 'field-label' }, 'Sounds'),
-    soundChip,
+    soundRow,
     el('div', { class: 'field-label' }, 'Time format'),
     hourRow,
     el('div', { class: 'field-label' }, 'Timer ringer'),
