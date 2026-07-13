@@ -105,24 +105,31 @@ export function gardenSceneSVG(plants) {
   const n = order.length;
   const gap = n > 1 ? Math.min(130, (W - 180) / (n - 1)) : 0;
   const startX = W / 2 - (gap * (n - 1)) / 2;
+  let plantsOut = '';
+  const footprints = []; // x-ranges the plants occupy, so flowers can steer clear
   order.forEach((p, i) => {
     const w = 58 + Math.min(p.level, 12) * 4;
     const h = w * 1.25;
     const x = startX + gap * i;
     const y = 240 + (rnd() * 10 - 5);
+    footprints.push([x - w / 2 - 10, x + w / 2 + 10]);
     const inner = plantSVG(p.sk, p.level, w);
-    out += `<g class="scene-plant" data-skill-id="${p.sk.id}" data-name="${esc(p.sk.name)}" data-level="${p.level}" transform="translate(${(x - w / 2).toFixed(1)},${(y - h).toFixed(1)})">
+    plantsOut += `<g class="scene-plant" data-skill-id="${p.sk.id}" data-name="${esc(p.sk.name)}" data-level="${p.level}" transform="translate(${(x - w / 2).toFixed(1)},${(y - h).toFixed(1)})">
       <rect class="scene-hit" x="0" y="-8" width="${w}" height="${(h + 8).toFixed(1)}" fill="transparent"/>
       <g class="scene-lift">${inner}</g>
     </g>`;
   });
 
-  // meadow flowers between the plants
-  for (let i = 0; i < Math.min(4 + n * 2, 14); i++) {
+  // meadow flowers — placed BEFORE the plants (so plants sit on top) and kept out of plant footprints
+  const clearOfPlants = (x) => footprints.every(([lo, hi]) => x < lo || x > hi);
+  for (let i = 0, placed = 0, tries = 0; placed < Math.min(4 + n * 2, 14) && tries < 60; tries++) {
     const x = Math.round(30 + rnd() * (W - 60));
+    if (!clearOfPlants(x)) continue;
     const y = 226 + rnd() * 24;
     out += `<circle cx="${x}" cy="${y.toFixed(1)}" r="2.6" fill="var(--hflower)"/><circle cx="${x}" cy="${y.toFixed(1)}" r="1" fill="var(--hsun)"/>`;
+    placed++;
   }
+  out += plantsOut;
 
   return `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMax slice" role="img" aria-label="your garden">
     <defs><linearGradient id="bloomsky2" x1="0" y1="0" x2="0" y2="1">
