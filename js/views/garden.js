@@ -213,7 +213,7 @@ export function render(root) {
   );
 
   // ---- GOBE-style tier strip (per plant — the top plant's own hours) ----
-  const tierStrip = topSk ? tierStripEl(tier, `${topSk.name} now`, topSk.name) : null;
+  const tierStrip = topSk ? tierStripEl(tier, `${topSk.name} now`, topSk.name) : ''; // '' not null — append(null) prints "null"
 
   root.append(
     el('div', { class: 'view-head' },

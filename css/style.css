@@ -114,7 +114,7 @@ h1 em, h2 em, h3 em, .logo em {
 }
 p { margin: 0; }
 a { color: var(--olive-2); text-decoration: none; }
-button { font-family: inherit; cursor: pointer; }
+button { font-family: inherit; cursor: pointer; color: inherit; -webkit-tap-highlight-color: transparent; }
 input, select, textarea { font-family: inherit; color: inherit; }
 ::placeholder { color: var(--muted); opacity: 0.75; }
 .muted { color: var(--muted); }
@@ -665,7 +665,7 @@ details.done-details summary:hover { color: var(--ink); }
 
 /* ============ onboarding ============ */
 .onboard { text-align: center; padding: 8px 4px; }
-.onboard .flower { font-size: 50px; display: inline-block; animation: bob 3s ease-in-out infinite; }
+.onboard .flower { font-size: 50px; display: inline-block; transform-origin: bottom center; animation: bob 3s ease-in-out infinite; }
 .onboard h2 { font-size: 27px; margin: 12px 0 8px; }
 .onboard p { color: var(--muted); font-weight: 600; line-height: 1.65; }
 .onboard .input { text-align: center; font-size: 16px; margin: 18px 0 14px; }
