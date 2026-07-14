@@ -601,7 +601,10 @@ details.done-details summary:hover { color: var(--ink); }
   position: fixed; max-width: 300px; z-index: 301;
   background: var(--card); border: 1.5px solid var(--line); border-radius: 16px;
   padding: 14px 16px 12px; box-shadow: var(--shadow);
+  opacity: 0; visibility: hidden; transform: translateY(4px);
+  transition: opacity 0.22s ease, visibility 0.22s, transform 0.22s ease, left 0.35s ease, top 0.35s ease;
 }
+.tour-tip.show { opacity: 1; visibility: visible; transform: none; }
 .tour-kicker { font-size: 10px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); margin-bottom: 3px; }
 .tour-tip h3 { font-size: 17px; margin-bottom: 4px; }
 .tour-tip p { font-size: 13px; font-weight: 600; color: var(--muted); line-height: 1.55; }

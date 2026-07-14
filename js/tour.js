@@ -39,9 +39,12 @@ const STEPS = [
 ];
 
 let root = null;
+let offRefresh = null;
 
 export function endTour() {
   delete document.documentElement.dataset.tour;
+  offRefresh?.();
+  offRefresh = null;
   root?.remove();
   root = null;
 }
@@ -55,6 +58,7 @@ export function startTour() {
   document.body.append(root);
 
   let seq = 0; // stale-step guard: only the latest show() may touch the overlay
+  let current = null; // step currently on screen — resize/scroll keep its spotlight glued
 
   const placeHole = (r, snap) => {
     const pad = 8;
@@ -66,7 +70,7 @@ export function startTour() {
     if (snap) { void hole.offsetWidth; hole.style.transition = ''; }
   };
 
-  const placeTip = (r, side) => {
+  const placeTip = (r, side, snap) => {
     // beside tall targets, else below (or above when cramped) — always clamped on-screen
     const vw = innerWidth, vh = innerHeight, m = 12;
     const tw = tip.offsetWidth, th = tip.offsetHeight;
@@ -78,16 +82,38 @@ export function startTour() {
       left = Math.min(Math.max(r.left + r.width / 2 - tw / 2, m), vw - tw - m);
       top = r.bottom + m + th < vh ? r.bottom + m : Math.max(r.top - th - m, m);
     }
-    Object.assign(tip.style, { left: `${left}px`, top: `${top}px`, visibility: 'visible' });
+    if (snap) tip.style.transition = 'none';
+    Object.assign(tip.style, { left: `${left}px`, top: `${top}px` });
+    if (snap) { void tip.offsetWidth; tip.style.transition = ''; }
+  };
+
+  // window resized or scrolled mid-tour → re-fit the spotlight to wherever the target is now
+  let raf = 0;
+  const refresh = () => {
+    if (!root || !current) return;
+    const t = current.target();
+    if (!t) return;
+    const r = t.getBoundingClientRect();
+    placeHole(r, true);
+    placeTip(r, current.side, true);
+  };
+  const queueRefresh = () => { cancelAnimationFrame(raf); raf = requestAnimationFrame(refresh); };
+  addEventListener('resize', queueRefresh);
+  addEventListener('scroll', queueRefresh, { passive: true, capture: true });
+  offRefresh = () => {
+    cancelAnimationFrame(raf);
+    removeEventListener('resize', queueRefresh);
+    removeEventListener('scroll', queueRefresh, { capture: true });
   };
 
   async function show(idx) {
     const my = ++seq;
     const st = STEPS[idx];
     if (!root) return;
+    current = null; // hands off while we travel
+    tip.classList.remove('show'); // fade out instead of blinking away
     if (location.hash !== st.route) {
       // fully dim while the page swaps, so the old spotlight never frames the wrong thing
-      tip.style.visibility = 'hidden';
       placeHole({ left: innerWidth / 2, top: innerHeight / 2, width: 0, height: 0 }, false);
       location.hash = st.route;
       await sleep(430); // let the router render the page
@@ -95,8 +121,9 @@ export function startTour() {
     }
     const target = st.target();
     if (!target) { advance(idx); return; } // section missing? just move on
-    target.scrollIntoView({ block: 'center' });
-    await sleep(60);
+    // glide the page to the target instead of jumping — the spotlight travels with it
+    target.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    await sleep(80);
     if (!root || my !== seq) return;
     placeHole(target.getBoundingClientRect(), false);
 
@@ -114,24 +141,25 @@ export function startTour() {
         }, last ? 'Start growing' : 'Next'),
       ),
     );
-    tip.style.visibility = 'hidden';
-    await sleep(10);
-    if (!root || my !== seq) return;
-    placeTip(target.getBoundingClientRect(), st.side);
+    placeTip(target.getBoundingClientRect(), st.side, !tip.classList.contains('shown-once'));
+    tip.classList.add('show', 'shown-once');
 
-    // self-heal: after the glide settles, re-measure — if anything shifted (fonts, late
-    // layout, scroll restore), snap the spotlight into place without animating.
-    sleep(420).then(() => {
-      if (!root || my !== seq) return;
-      const fresh = st.target();
-      if (!fresh) return;
-      const r = fresh.getBoundingClientRect();
-      const h = hole.getBoundingClientRect();
-      if (Math.abs(h.left + 8 - r.left) > 2 || Math.abs(h.top + 8 - r.top) > 2 || Math.abs(h.width - 16 - r.width) > 2) {
-        placeHole(r, true);
-        placeTip(r, st.side);
-      }
-    });
+    // settle: smooth scroll + late layout can shift things — re-measure until quiet,
+    // then hand the step to the resize/scroll refresher to keep it glued.
+    for (const wait of [260, 520]) {
+      sleep(wait).then(() => {
+        if (!root || my !== seq) return;
+        const fresh = st.target();
+        if (!fresh) return;
+        const r = fresh.getBoundingClientRect();
+        const h = hole.getBoundingClientRect();
+        if (Math.abs(h.left + 8 - r.left) > 2 || Math.abs(h.top + 8 - r.top) > 2 || Math.abs(h.width - 16 - r.width) > 2) {
+          placeHole(r, false); // animate the correction — no snapping flash
+          placeTip(r, st.side, false);
+        }
+        current = st;
+      });
+    }
   }
 
   function advance(idx) {
