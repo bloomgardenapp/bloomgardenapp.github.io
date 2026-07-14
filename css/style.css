@@ -768,26 +768,17 @@ details.done-details summary:hover { color: var(--ink); }
 
 /* ============ responsive ============ */
 @media (max-width: 1060px) and (min-width: 761px) {
-  #app { grid-template-columns: 68px 1fr; }
-  #sidebar { padding: 18px 8px 14px; align-items: center; }
-  .logo { padding: 0 0 16px; }
-  .logo em, .logo span:not(.logo-flower) { display: none; }
-  .nav-item { justify-content: center; padding: 11px 0; }
-  .nav-item span:not(.nav-emoji) { display: none; }
-  .nav-item .nav-emoji { width: auto; font-size: 18px; }
-  .nav-timer-chip { padding: 6px 4px; font-size: 10.5px; margin: 8px 2px 0; width: calc(100% - 4px); }
-  .sidebar-foot { flex-direction: column; gap: 2px; }
-  .sidebar-foot .streak-mini { display: none; }
   #view { padding: 26px 24px 70px; }
 }
 @media (max-width: 1060px) {
   .cal-wrap { grid-template-columns: 1fr; }
   .day-panel { position: static; }
 }
-/* manual collapse — only on wide desktop (narrower screens already rail/tab automatically) */
+/* manual collapse — tablets (761-1060) default to the rail but the arrow pushes it back
+   open; phones (≤760) use bottom tabs and have no toggle */
 #sidebar-toggle { display: none; margin-left: auto; flex-shrink: 0; }
 #sidebar-toggle .ic svg { transition: transform 0.2s ease; }
-@media (min-width: 1061px) {
+@media (min-width: 761px) {
   #sidebar-toggle { display: inline-flex; }
   #app.sidebar-collapsed { grid-template-columns: 68px 1fr; }
   #app.sidebar-collapsed #sidebar { padding: 18px 8px 14px; align-items: center; }

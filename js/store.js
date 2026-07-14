@@ -37,7 +37,7 @@ Now go plant something!`,
 function defaultState() {
   return {
     version: 1,
-    settings: { name: '', theme: 'light', sound: true, music: true, ringer: 'chime', hour24: false, onboarded: false, reminder: false, reminderTime: '19:00', reminderLast: null, taps: true, sidebarCollapsed: false },
+    settings: { name: '', theme: 'light', sound: true, music: true, ringer: 'chime', hour24: false, onboarded: false, reminder: false, reminderTime: '19:00', reminderLast: null, taps: true },
     skills: [],   // {id, name, emoji, color, createdAt}
     tasks: [],    // {id, title, done, doneAt, due, skillId, priority, createdAt}
     weeklyTasks: [], // {id, title, done, doneAt, week, createdAt} — simple checklist for the current week

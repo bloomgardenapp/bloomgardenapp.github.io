@@ -392,8 +392,18 @@ function buildSidebar() {
   applySidebar();
 }
 
+// Per-device preference (localStorage, NOT synced settings — collapsing on the iPad
+// shouldn't collapse the desktop). Absent = auto: tablets start as the rail.
+const SBKEY = 'bloom.sidebar.v1';
+function sidebarCollapsed() {
+  const pref = localStorage.getItem(SBKEY);
+  if (pref === '1') return true;
+  if (pref === '0') return false;
+  return innerWidth <= 1060; // no choice made yet — rail on tablets, full on desktop
+}
+
 function applySidebar() {
-  const collapsed = !!store.state.settings.sidebarCollapsed;
+  const collapsed = sidebarCollapsed();
   document.getElementById('app').classList.toggle('sidebar-collapsed', collapsed);
   const btn = document.getElementById('sidebar-toggle');
   if (btn) {
@@ -403,11 +413,11 @@ function applySidebar() {
 }
 
 function toggleSidebar() {
-  store.state.settings.sidebarCollapsed = !store.state.settings.sidebarCollapsed;
-  store.save(true);
+  try { localStorage.setItem(SBKEY, sidebarCollapsed() ? '0' : '1'); } catch { /* private mode — fine */ }
   sfx.click();
   applySidebar();
 }
+addEventListener('resize', applySidebar); // auto mode follows the width until a choice is made
 
 function updateNav() {
   document.querySelectorAll('.nav-item').forEach((n) => n.classList.toggle('active', n.dataset.view === currentView));
