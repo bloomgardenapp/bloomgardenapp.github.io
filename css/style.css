@@ -783,8 +783,11 @@ details.done-details summary:hover { color: var(--ink); }
   #app.sidebar-collapsed { grid-template-columns: 68px 1fr; }
   #app.sidebar-collapsed #sidebar { padding: 18px 8px 14px; align-items: center; }
   #app.sidebar-collapsed .logo { flex-direction: column; gap: 12px; padding: 0 0 16px; }
-  #app.sidebar-collapsed #sidebar-toggle { margin-left: 0; }
-  #app.sidebar-collapsed .logo em, #app.sidebar-collapsed .logo span:not(.logo-flower) { display: none; }
+  /* in the rail the arrow gets a visible chip so "open me back up" is unmissable */
+  #app.sidebar-collapsed #sidebar-toggle { margin-left: 0; background: var(--card-2); border: 1.5px solid var(--line-strong); }
+  #app.sidebar-collapsed #sidebar-toggle:hover { background: var(--olive-soft); }
+  /* hide only the wordmark — NOT descendant spans (the daisy's and arrow's glyphs are spans) */
+  #app.sidebar-collapsed .logo > em { display: none; }
   #app.sidebar-collapsed .nav-item { justify-content: center; padding: 11px 0; }
   #app.sidebar-collapsed .nav-item span:not(.nav-emoji) { display: none; }
   #app.sidebar-collapsed .nav-item .nav-emoji { width: auto; font-size: 18px; }
