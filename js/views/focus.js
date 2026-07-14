@@ -489,14 +489,9 @@ function setupCard() {
     class: 'skill-chip' + (sk.id === selSkillId ? ' sel' : ''),
     style: sk.id === selSkillId ? { background: sk.color } : {},
     dataset: { skill: sk.name },
-    onClick: () => { selSkillId = sk.id; sfx.click(); store.notify(); },
+    title: sk.id === selSkillId ? 'Tap again to focus without a plant' : undefined,
+    onClick: () => { selSkillId = sk.id === selSkillId ? FREE : sk.id; sfx.click(); store.notify(); },
   }, ic((sk.icon || 'sprout'), { size: 12 }), ` ${sk.name}`));
-  chips.push(el('button', {
-    class: 'skill-chip' + (selSkillId === FREE ? ' sel' : ''),
-    style: selSkillId === FREE ? { background: '#8FA35E' } : {},
-    dataset: { skill: 'just focus' }, title: 'Focus without a plant — minutes still count toward your day',
-    onClick: () => { selSkillId = FREE; sfx.click(); store.notify(); },
-  }, ic('hourglass', { size: 12 }), ' just focus'));
   chips.push(el('button', {
     class: 'skill-chip', onClick: async () => {
       const sk = await openSkillEditor();
