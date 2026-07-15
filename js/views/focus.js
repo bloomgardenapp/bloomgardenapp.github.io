@@ -57,7 +57,7 @@ export function completeTimer() {
       // standalone break (the Break tab) — just ends, nothing to log
       store.state.timer = null;
       document.title = 'Bloom';
-      sfx.chime();
+      sfx.alarm();
       notifyBG('Break over', 'Fresh and ready to grow.');
       toast('Break over — fresh and ready', 'leaf');
       store.save();
@@ -92,7 +92,7 @@ export function completeTimer() {
     document.title = 'Bloom';
     notifyBG('Session complete', sk ? `+${minutes}m to ${name} — lovely work.` : 'Lovely work.');
   }
-  sfx.chime();
+  sfx.alarm();
   rain();
   if (sk) logSession({ skillId, minutes, source: 'timer' }); // saves + notifies + level-up celebration
   else { toast('Timer done — lovely work', 'hourglass'); store.save(); }

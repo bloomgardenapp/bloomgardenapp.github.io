@@ -53,33 +53,38 @@ function tap({ t = 0, dur = 0.015, vol = 0.02, freq = 2000 } = {}) {
 // ---- timer ringers (pick yours in Settings) ----
 export const RINGERS = {
   chime: {
-    label: 'Chime',
-    play: () => [659, 784, 988, 1319].forEach((f, i) => tone(f, { t: i * 0.13, dur: 0.4, vol: 0.14 })),
+    label: 'Chime', span: 1.1,
+    play: () => [659, 784, 988, 1319].forEach((f, i) => tone(f, { t: i * 0.13, dur: 0.55, vol: 0.26 })),
   },
   bell: {
-    label: 'Bell',
+    label: 'Bell', span: 2.1,
     play: () => {
-      tone(880, { dur: 1.2, vol: 0.13 }); tone(1760, { dur: 0.7, vol: 0.04 });
-      tone(659, { t: 0.55, dur: 1.4, vol: 0.13 }); tone(1318, { t: 0.55, dur: 0.8, vol: 0.04 });
+      tone(880, { dur: 1.2, vol: 0.24 }); tone(1760, { dur: 0.7, vol: 0.08 });
+      tone(659, { t: 0.55, dur: 1.4, vol: 0.24 }); tone(1318, { t: 0.55, dur: 0.8, vol: 0.08 });
     },
   },
   birdsong: {
-    label: 'Birdsong',
+    label: 'Birdsong', span: 0.95,
     play: () => {
       [[2300, 0], [2700, 0.1], [2450, 0.22], [3000, 0.36], [2600, 0.52], [3150, 0.64]]
-        .forEach(([f, t]) => tone(f, { t, dur: 0.1, vol: 0.07, glide: 1.25 }));
+        .forEach(([f, t]) => tone(f, { t, dur: 0.1, vol: 0.13, glide: 1.25 }));
     },
   },
   marimba: {
-    label: 'Marimba',
-    play: () => [1047, 784, 659, 523, 659, 784].forEach((f, i) => tone(f, { t: i * 0.11, dur: 0.28, type: 'triangle', vol: 0.15 })),
+    label: 'Marimba', span: 1.0,
+    play: () => [1047, 784, 659, 523, 659, 784].forEach((f, i) => tone(f, { t: i * 0.11, dur: 0.28, type: 'triangle', vol: 0.28 })),
   },
-  silent: { label: 'Silent', play: () => {} },
+  silent: { label: 'Silent', span: 0, play: () => {} },
 };
 
-export function playRinger(name) {
+// repeats > 1 turns the ringer into a real alarm — the pattern plays back-to-back
+export function playRinger(name, repeats = 1) {
   const key = name || store.state.settings.ringer || 'chime';
-  (RINGERS[key] || RINGERS.chime).play();
+  const r = RINGERS[key] || RINGERS.chime;
+  for (let i = 0; i < repeats; i++) {
+    if (i === 0) r.play();
+    else setTimeout(() => r.play(), i * (r.span || 1) * 1000);
+  }
 }
 
 function noiseSource(c, color = 'white') {
@@ -286,6 +291,7 @@ export const sfx = {
   pop: () => { if (store.state.settings.taps === false) return; tok(523); tok(784, { t: 0.09, dur: 0.12 }); },
   start: () => { tok(440, { dur: 0.11 }); tok(587, { t: 0.11, dur: 0.14 }); },
   chime: () => playRinger(),
+  alarm: () => playRinger(null, 3), // timer's done — the ringer repeats so you actually hear it
   level: () => [523, 659, 784, 1047].forEach((f, i) => tok(f, { t: i * 0.09, dur: 0.22, vol: 0.07 })),
   uhoh: () => { tok(494, { dur: 0.11 }); tok(370, { t: 0.11, dur: 0.16 }); },
 };
