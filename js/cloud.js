@@ -41,7 +41,10 @@ const jsonHeaders = (authed) => ({
 
 // ── auth: email → sign-in link → the link lands back on Bloom with a session in the hash
 export async function requestLink(email) {
-  const res = await fetch(`${CLOUD.url}/auth/v1/otp`, {
+  // redirect_to brings the link back to THIS site (github.io / vercel / localhost) —
+  // each origin must be allowlisted in Supabase Auth → URL Configuration → Redirect URLs
+  const back = encodeURIComponent(location.origin + location.pathname);
+  const res = await fetch(`${CLOUD.url}/auth/v1/otp?redirect_to=${back}`, {
     method: 'POST', headers: jsonHeaders(false),
     body: JSON.stringify({ email, create_user: true }),
   });
@@ -143,15 +146,24 @@ async function pullGarden() {
   return rows[0] || null;
 }
 
-// after sign-in (or on boot): whichever side was edited last becomes the truth
+// how much real life a garden holds — an empty fresh browser must never outrank a real garden
+const substance = (s) => (s?.skills?.length || 0) + (s?.sessions?.length || 0)
+  + (s?.tasks?.length || 0) + (s?.notes?.length || 0) + (s?.events?.length || 0);
+
+// after sign-in (or on boot): a garden with actual plants beats an empty one,
+// no matter the timestamps; only between two real gardens does newest-edit win
 async function firstSync() {
   setStatus('syncing');
   const row = await pullGarden().catch(() => null);
-  const localEdited = store.state.editedAt || '';
-  if (row?.data && (row.edited_at || '') > localEdited) {
+  const cloudHas = substance(row?.data);
+  const localHas = substance(store.state);
+  const cloudNewer = row?.data && (row.edited_at || '') > (store.state.editedAt || '');
+  if (row?.data && cloudHas && (!localHas || cloudNewer)) {
     store.replace(row.data);
     toast('Your garden is back', 'flower');
     setStatus('synced');
+  } else if (!localHas && cloudNewer) {
+    setStatus('synced'); // both empty, cloud current — nothing worth writing either way
   } else {
     await pushGarden();
   }

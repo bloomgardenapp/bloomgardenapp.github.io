@@ -256,6 +256,14 @@ input[type="date"].input, input[type="time"].input, input[type="number"].input {
 .stat-label { font-size: 11px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; }
 
 /* ============ header / greeting ============ */
+.signin-banner {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  background: var(--card-2); border: 1.5px solid var(--line);
+  border-radius: var(--radius); padding: 10px 16px; margin-bottom: 18px;
+  font-size: 13.5px; color: var(--muted); font-weight: 600;
+}
+.signin-banner strong { color: var(--olive-2); }
+.signin-banner .btn { padding: 6px 14px; font-size: 13px; }
 .view-head { display: flex; align-items: flex-end; gap: 14px; flex-wrap: wrap; margin-bottom: 6px; }
 .view-head .sub { color: var(--muted); font-weight: 600; margin-top: 8px; font-size: 13.5px; }
 .squiggle { position: relative; display: inline-block; }

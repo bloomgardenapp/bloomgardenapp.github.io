@@ -8,6 +8,7 @@ import { barChartSVG, dayLabels7 } from '../charts.js';
 import { plantSVG } from '../plant.js';
 import { taskRow } from './tasks.js';
 import { quickLogBox } from '../quicklog.js';
+import { cloudConfigured, signedIn } from '../cloud.js';
 
 let chartRange = 'week'; // week | month | year — survives re-renders
 
@@ -256,7 +257,18 @@ export function render(root) {
       : el('p', { class: 'muted small', style: { padding: '2px 4px' } }, 'A clear week ahead.'),
   );
 
+  // gentle nudge: your garden is only in this browser until you sign in
+  const signinBanner = (cloudConfigured() && !signedIn())
+    ? el('div', { class: 'signin-banner' },
+        ic('flower', { size: 15 }),
+        el('span', {}, 'Your garden lives only in this browser — ', el('strong', {}, 'sign in'), ' to keep it safe on every device.'),
+        el('span', { class: 'spacer' }),
+        el('button', { class: 'btn btn-primary', onClick: () => window.dispatchEvent(new Event('bloom:open-settings')) }, 'Sign in'),
+      )
+    : null;
+
   root.append(
+    ...(signinBanner ? [signinBanner] : []),
     el('div', { class: 'view-head' },
       el('div', {},
         el('h1', {}, `${greet}, `, el('em', {
