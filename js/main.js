@@ -299,6 +299,70 @@ function maybeOnboard() {
     setTimeout(startTour, 450);
   };
 
+  // step 0: account first — the garden follows you everywhere from day one
+  const step0 = () => {
+    if (!cloud.cloudConfigured() || cloud.signedIn()) { step1(); return; }
+    const emailIn = el('input', { class: 'input', type: 'email', placeholder: 'you@example.com', id: 'onboard-email', autocomplete: 'email' });
+    const msg = el('p', { class: 'muted small', style: { marginTop: '8px' } }, '');
+    const go = async () => {
+      const email = emailIn.value.trim().toLowerCase();
+      if (!/^\S+@\S+\.\S+$/.test(email)) { sfx.uhoh(); emailIn.focus(); return; }
+      goBtn.disabled = true;
+      msg.textContent = 'Sending your code…';
+      try { await cloud.requestLink(email); askCode(email); }
+      catch (err) { msg.textContent = String(err.message || 'Could not send — try again.'); goBtn.disabled = false; }
+    };
+    const goBtn = el('button', { class: 'btn btn-primary btn-big', style: { marginTop: '12px' }, id: 'onboard-account', onClick: go }, 'Create account / Sign in');
+    emailIn.addEventListener('keydown', (e) => { if (e.key === 'Enter') go(); });
+    wrap.replaceChildren(
+      el('span', { class: 'flower', html: plantSVG({ id: 'onboard-plant', color: '#C97F5F' }, 8, 74) }),
+      el('h2', {}, 'Welcome to ', el('em', {}, 'Bloom')),
+      el('p', {}, 'Your focus grows a garden — and an account keeps it safe on every device. Plants, tasks, calendar, notes and your name, always with you.'),
+      emailIn, goBtn, msg,
+      el('div', { style: { marginTop: '10px' } },
+        el('button', { class: 'link-btn', id: 'onboard-no-account', onClick: () => step1() }, 'just try it first — no account yet')),
+    );
+    setTimeout(() => emailIn.focus(), 80);
+  };
+
+  const askCode = (email) => {
+    const codeIn = el('input', { class: 'input', placeholder: 'code from your email', inputmode: 'numeric', autocomplete: 'one-time-code', id: 'onboard-code' });
+    const msg = el('p', { class: 'muted small', style: { marginTop: '8px' } }, '');
+    const verify = async () => {
+      const code = codeIn.value.trim();
+      if (!code) { sfx.uhoh(); codeIn.focus(); return; }
+      vBtn.disabled = true;
+      msg.textContent = 'Checking…';
+      try {
+        await cloud.verifyCode(email, code);
+        sfx.chime();
+        if (store.state.settings.name || store.state.skills.length) {
+          // returning gardener — their whole garden just came down from the cloud
+          store.state.settings.onboarded = true;
+          store.save();
+          close();
+          toast(`Welcome back${store.state.settings.name ? ', ' + store.state.settings.name : ''}!`, 'flower');
+          return;
+        }
+        step1(); // brand-new account — carry on and plant something
+      } catch (err) {
+        msg.textContent = String(err.message || 'That code didn’t work — try again.');
+        vBtn.disabled = false;
+      }
+    };
+    const vBtn = el('button', { class: 'btn btn-primary btn-big', style: { marginTop: '12px' }, id: 'onboard-verify', onClick: verify }, 'Sign in');
+    codeIn.addEventListener('keydown', (e) => { if (e.key === 'Enter') verify(); });
+    wrap.replaceChildren(
+      el('span', { class: 'flower', html: plantSVG({ id: 'onboard-plant', color: '#C97F5F' }, 8, 74) }),
+      el('h2', {}, 'Check your ', el('em', {}, 'email')),
+      el('p', {}, `We wrote to ${email} — type the code from it here, or click the link in the email.`),
+      codeIn, vBtn, msg,
+      el('div', { style: { marginTop: '10px' } },
+        el('button', { class: 'link-btn', onClick: () => step0() }, 'different email')),
+    );
+    setTimeout(() => codeIn.focus(), 80);
+  };
+
   const step1 = () => {
     const nameIn = el('input', { class: 'input', placeholder: 'What should we call you?', maxlength: 24, id: 'onboard-name', autocomplete: 'off' });
     const next = () => {
@@ -356,7 +420,7 @@ function maybeOnboard() {
     setTimeout(() => skillIn.focus(), 80);
   };
 
-  step1();
+  step0();
 }
 
 // ---------- music ----------
