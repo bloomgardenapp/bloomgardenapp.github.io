@@ -259,7 +259,9 @@ export function plantSVG(skill, level, size = 96) {
   const green = `<g class="sway">${draw(L, c, rnd)}</g>`;
 
   const potTop = SOIL + 4;
-  const gid = 'pg' + (skill.id || 'x').replace(/[^a-z0-9]/gi, '');
+  // svg ids are document-global — bake the colour in so a recoloured preview never
+  // resolves to a stale same-id gradient rendered elsewhere on the page
+  const gid = 'pg' + ((skill.id || 'x') + c).replace(/[^a-z0-9]/gi, '');
   const pot = `
     <defs>
       <linearGradient id="${gid}" x1="0" y1="0" x2="0" y2="1">
