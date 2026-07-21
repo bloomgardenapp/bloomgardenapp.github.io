@@ -140,13 +140,38 @@ function greeting() {
   return ['Good evening', 'moon'];
 }
 
-const SUBS = [
-  'Small steps, every day — that’s how gardens grow.',
-  'What are you growing today?',
-  'One focused hour beats a busy day.',
-  'Your plants are rooting for you.',
-  'Water something today — future you says thanks.',
+// one quote per day — rotates on the day of the year so it never feels stuck
+const QUOTES = [
+  ['Little by little, a little becomes a lot.', 'Tanzanian proverb'],
+  ['The best time to plant a tree was 20 years ago. The second best time is now.', 'Chinese proverb'],
+  ['Nature does not hurry, yet everything is accomplished.', 'Lao Tzu'],
+  ['Small steps, every day — that’s how gardens grow.', null],
+  ['The secret of getting ahead is getting started.', 'Mark Twain'],
+  ['Great things are done by a series of small things brought together.', 'Vincent van Gogh'],
+  ['We are what we repeatedly do.', 'Will Durant'],
+  ['No rain, no flowers.', null],
+  ['Well begun is half done.', 'Aristotle'],
+  ['Your plants are rooting for you.', null],
+  ['Don’t watch the clock; do what it does. Keep going.', 'Sam Levenson'],
+  ['Success is the sum of small efforts, repeated day in and day out.', 'Robert Collier'],
+  ['Where flowers bloom, so does hope.', 'Lady Bird Johnson'],
+  ['One focused hour beats a busy day.', null],
+  ['A year from now you may wish you had started today.', 'Karen Lamb'],
+  ['How we spend our days is how we spend our lives.', 'Annie Dillard'],
+  ['It always seems impossible until it’s done.', 'Nelson Mandela'],
+  ['Every flower must grow through dirt.', null],
+  ['You don’t have to be great to start, but you have to start to be great.', 'Zig Ziglar'],
+  ['Water something today — future you says thanks.', null],
+  ['A river cuts through rock not because of its power, but its persistence.', 'Jim Watkins'],
+  ['Motivation gets you going; habit gets you there.', 'Zig Ziglar'],
+  ['What are you growing today?', null],
+  ['Diligence is the mother of good luck.', 'Benjamin Franklin'],
 ];
+function dailyQuote() {
+  const now = new Date();
+  const dayOfYear = Math.floor((now - new Date(now.getFullYear(), 0, 0)) / 86400000);
+  return QUOTES[dayOfYear % QUOTES.length];
+}
 
 function stat(icon, tile, num, label) {
   return el('div', { class: 'stat' },
@@ -163,7 +188,7 @@ export function render(root) {
   const today = todayYmd();
   const [greet, gEmoji] = greeting();
   const name = s.settings.name || 'friend';
-  const sub = SUBS[new Date().getDate() % SUBS.length];
+  const [quote, quoteBy] = dailyQuote();
 
   const doneToday = tasksDoneOn(today);
 
@@ -276,7 +301,8 @@ export function render(root) {
           style: { cursor: 'pointer' }, title: 'Click to change your name',
           onClick: () => window.dispatchEvent(new Event('bloom:open-settings')),
         }, name), ' ', ic(gEmoji, { size: 22, cls: 'h1-ic' })),
-        el('p', { class: 'sub' }, `${fmtLongDate(today)} · ${sub}`),
+        el('p', { class: 'sub' }, fmtLongDate(today)),
+        el('p', { class: 'daily-quote' }, `“${quote}”`, quoteBy ? el('span', { class: 'quote-by' }, ` — ${quoteBy}`) : null),
       ),
       el('span', { class: 'spacer' }),
       el('a', { class: 'btn btn-primary btn-big', href: '#/focus' }, ic('hourglass', { size: 15 }), 'Start a focus'),

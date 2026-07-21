@@ -222,7 +222,7 @@ export function render(root) {
       el('div', {},
         el('h1', {}, 'Your ', el('em', { class: 'squiggle' }, 'garden'), ' ', ic('sprout', { size: 22, cls: 'h1-ic' })),
         el('p', { class: 'sub' }, s.skills.length
-          ? 'a little water every day'
+          ? 'Look what your focus grew.'
           : 'Every skill you practice becomes a plant. Time makes it grow.'),
       ),
       el('span', { class: 'spacer' }),
