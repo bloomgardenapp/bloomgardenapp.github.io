@@ -215,7 +215,9 @@ export function render(root) {
       ? el('div', { style: { marginBottom: '10px' } },
           ...eventsToday.map((ev) => el('div', { class: 'event-row' },
             el('div', { class: 'event-bar', style: { background: ev.color } }),
-            el('span', { class: 'event-time' }, ev.time ? fmtTime(ev.time, s.settings.hour24) : 'all day'),
+            el('span', { class: 'event-time' }, ev.time
+              ? fmtTime(ev.time, s.settings.hour24) + (ev.timeEnd ? ` – ${fmtTime(ev.timeEnd, s.settings.hour24)}` : '')
+              : 'all day'),
             el('span', { class: 'event-title' }, ev.title),
           )))
       : null,

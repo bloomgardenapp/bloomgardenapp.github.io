@@ -192,18 +192,12 @@ export function render(root) {
       sceneTip.textContent = `${g.dataset.name} · lv ${g.dataset.level}`;
       const r = banner.getBoundingClientRect();
       const gr = g.getBoundingClientRect();
-      // measure the drawn plant's real top (species differ in height at the same level)
-      // and float the tag a little above it — never on the art
-      let topY = gr.top + gr.height * 0.3;
-      const nested = g.querySelector('svg');
-      try {
-        const bb = nested.getBBox();
-        const vb = nested.viewBox.baseVal;
-        const nr = nested.getBoundingClientRect();
-        topY = nr.top + (bb.y - vb.y) * (nr.height / vb.height);
-      } catch { /* pre-paint — the estimate above is fine */ }
+      // an svg <g>'s client rect IS the drawn plant's on-screen box — no viewBox math,
+      // no letterboxing surprises. Tag floats above it with room for the 6px hover lift.
+      const art = g.querySelector('.scene-lift') || g;
+      const topY = art.getBoundingClientRect().top;
       sceneTip.style.left = `${gr.left - r.left + gr.width / 2}px`;
-      sceneTip.style.top = `${topY - r.top - 20}px`; // 14px air + the 6px hover lift the plant is about to do
+      sceneTip.style.top = `${topY - r.top - 18}px`;
       sceneTip.classList.add('show');
     },
     onMouseleave: () => sceneTip.classList.remove('show'),

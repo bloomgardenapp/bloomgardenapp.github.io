@@ -143,6 +143,42 @@ function dayPanel(rr) {
       if (!editing) eventDraft.time = timeIn.value;
     },
   });
+  // optional end time — "4:00 to 5:30". Typed am/pm wins; otherwise we pick the half
+  // of the day that puts the end after the start.
+  const endIn = el('input', {
+    class: 'input', id: 'event-end-in', autocomplete: 'off', 'aria-label': 'End time (optional)',
+    placeholder: h24 ? '21:00' : '8:30',
+    style: { width: h24 ? '92px' : '86px' },
+    value: editing
+      ? (editing.timeEnd ? (h24 ? editing.timeEnd : fmtTime(editing.timeEnd)) : '')
+      : (eventDraft.timeEnd || ''),
+    onInput: (e) => {
+      if (!editing) eventDraft.timeEnd = e.target.value;
+      e.target.classList.remove('invalid');
+    },
+    onKeydown: (e) => { if (e.key === 'Enter') submit(); },
+    onBlur: () => {
+      const v = endValue(timeValue());
+      if (v === undefined) { flash(endIn); return; }
+      if (!v) return;
+      endIn.value = h24 ? v : fmtTime(v); // end keeps its am/pm text — no pills for it
+      if (!editing) eventDraft.timeEnd = endIn.value;
+    },
+  });
+  function endValue(startHHMM) {
+    const t = endIn.value.trim();
+    if (!t) return null;
+    if (!h24 && !/[ap]/i.test(t)) {
+      const hh = parseInt(t, 10);
+      if (hh >= 1 && hh <= 12) {
+        const a = parseTimeInput(t + 'am');
+        const p = parseTimeInput(t + 'pm');
+        if (startHHMM) return (a && a > startHHMM) ? a : p; // first half that lands after the start
+        return parseTimeInput(t + ampm);
+      }
+    }
+    return parseTimeInput(t);
+  }
   // 12-hour mode gets AM/PM pills beside the field; 24-hour mode is just HH:MM
   const ampmChips = h24 ? null : el('div', { class: 'row', style: { gap: '4px' } },
     ...['am', 'pm'].map((v) => el('button', {
@@ -235,13 +271,35 @@ function dayPanel(rr) {
       timeIn.focus();
       return;
     }
+    const timeEnd = endValue(time);
+    if (timeEnd === undefined) {
+      sfx.uhoh();
+      flash(endIn);
+      toast(h24 ? 'Try an end time like 21:00 — or leave it blank' : 'Try an end time like 8:30 — or leave it blank', 'clock');
+      endIn.focus();
+      return;
+    }
+    if (timeEnd && !time) {
+      sfx.uhoh();
+      flash(timeIn);
+      toast('Add a start time to go with the end time', 'clock');
+      timeIn.focus();
+      return;
+    }
+    if (timeEnd && timeEnd <= time) {
+      sfx.uhoh();
+      flash(endIn);
+      toast('The end time needs to come after the start', 'clock');
+      endIn.focus();
+      return;
+    }
     const repeat = repeatSel.value || null;
     if (repeat === 'days' && evDays.size === 0) {
       sfx.uhoh();
       toast('Pick at least one day to repeat on', 'clock');
       return;
     }
-    const vals = { title, time, color: evColor, important: evImportant, repeat, days: repeat === 'days' ? [...evDays] : null };
+    const vals = { title, time, timeEnd, color: evColor, important: evImportant, repeat, days: repeat === 'days' ? [...evDays] : null };
     if (editing) {
       // repeating event: ask what the edit applies to (like Google Calendar)
       if (editing.repeat && vals.repeat) {
@@ -295,7 +353,9 @@ function dayPanel(rr) {
     evs.length
       ? el('div', {}, ...evs.map((ev) => el('div', { class: 'event-row' },
           el('div', { class: 'event-bar', style: { background: ev.color } }),
-          el('span', { class: 'event-time' }, ev.time ? fmtTime(ev.time, store.state.settings.hour24) : 'all day'),
+          el('span', { class: 'event-time' }, ev.time
+            ? fmtTime(ev.time, store.state.settings.hour24) + (ev.timeEnd ? ` – ${fmtTime(ev.timeEnd, store.state.settings.hour24)}` : '')
+            : 'all day'),
           el('span', { class: 'event-title' },
             ev.important ? el('span', { class: 'event-star', title: 'important' }, '★ ') : null,
             ev.title,
@@ -337,7 +397,9 @@ function dayPanel(rr) {
       : el('p', { class: 'muted small', style: { padding: '2px 4px 6px' } }, 'Nothing scheduled.'),
     el('div', { class: 'col', style: { gap: '8px', marginTop: '6px' } },
       titleIn,
-      el('div', { class: 'row gap wrap', style: { alignItems: 'center' } }, timeIn, ampmChips, repeatSel, impBtn),
+      el('div', { class: 'row gap wrap', style: { alignItems: 'center' } },
+        timeIn, ampmChips, el('span', { class: 'muted small' }, 'to'), endIn),
+      el('div', { class: 'row gap wrap', style: { alignItems: 'center' } }, repeatSel, impBtn),
       dayRow,
       colorRow,
       el('div', { class: 'row gap' },

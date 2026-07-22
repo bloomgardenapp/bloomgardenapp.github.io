@@ -106,15 +106,7 @@ h1, h2, h3 { font-family: var(--font-display); color: var(--ink-strong); font-we
 h1 { font-size: 30px; }
 h2 { font-size: 20px; }
 h3 { font-size: 16.5px; }
-h1 em, h2 em, h3 em {
-  /* Playfair's italics have proper swash tails — Fraunces' italic J ends in a flat
-     slice that reads as a broken glyph (her feedback on "Jasmine") */
-  font-family: 'Playfair Display', var(--font-display);
-  font-style: italic;
-  font-weight: 520;
-  color: var(--olive-2);
-}
-.logo em {
+h1 em, h2 em, h3 em, .logo em {
   font-family: var(--font-display);
   font-style: italic;
   font-weight: 480;

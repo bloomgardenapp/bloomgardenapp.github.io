@@ -53,7 +53,8 @@ export const fmtTime = (hhmm, h24 = false) => {
 export function parseTimeInput(str) {
   const t = (str || '').trim().toLowerCase();
   if (!t) return null;
-  const m = t.match(/^(\d{1,2})(?:[:.](\d{2}))?\s*(am|pm|a|p)?\.?$/);
+  // separator optional: "1030" and "930pm" are still times — blur rewrites them prettily
+  const m = t.match(/^(\d{1,2})(?:[:.]?(\d{2}))?\s*(am|pm|a|p)?\.?$/);
   if (!m) return undefined;
   let h = +m[1];
   const min = m[2] ? +m[2] : 0;
