@@ -26,6 +26,71 @@ function bush(x, y, r, f) {
   return `<ellipse cx="${x}" cy="${(y - r * 0.5).toFixed(1)}" rx="${r}" ry="${(r * 0.72).toFixed(1)}" fill="${f}"/>`;
 }
 
+// ---- scenery garnish (all theme-aware; day/night pieces swap via CSS) ----
+function sunWithGlow(x, y) {
+  return `<circle cx="${x}" cy="${y}" r="44" fill="var(--hsun)" opacity="0.10"/>
+  <circle cx="${x}" cy="${y}" r="34" fill="var(--hsun)" opacity="0.16"/>
+  <circle cx="${x}" cy="${y}" r="26" fill="var(--hsun)"/>
+  <circle class="scene-night" cx="${x + 10}" cy="${y - 8}" r="21" fill="var(--hsky1)" opacity="0.92"/>`;
+}
+
+function cloud(x, y, sc, dur, delay) {
+  return `<g class="scene-day" transform="translate(${x},${y}) scale(${sc})"><g class="scene-cloud" style="animation-duration:${dur}s;animation-delay:${delay}s">
+    <ellipse cx="0" cy="0" rx="26" ry="10" fill="var(--hcloud)"/>
+    <ellipse cx="17" cy="-6" rx="15" ry="8" fill="var(--hcloud)"/>
+    <ellipse cx="-17" cy="-4" rx="13" ry="7" fill="var(--hcloud)"/>
+  </g></g>`;
+}
+
+function bird(x, y, sc) {
+  return `<g class="scene-day" transform="translate(${x},${y}) scale(${sc})" opacity="0.55">
+    <path d="M0 0 Q 4 -4 8 0 Q 12 -4 16 0" stroke="var(--htree1)" stroke-width="1.6" fill="none" stroke-linecap="round"/>
+  </g>`;
+}
+
+function butterfly(x, y, delay) {
+  return `<g class="scene-day" transform="translate(${x},${y})"><g class="scene-flutter" style="animation-delay:${delay}s">
+    <ellipse cx="-3" cy="-0.5" rx="3.4" ry="2.3" fill="var(--hflower)" transform="rotate(-24)" opacity="0.9"/>
+    <ellipse cx="3" cy="-0.5" rx="3.4" ry="2.3" fill="var(--hflower)" transform="rotate(24)" opacity="0.9"/>
+    <rect x="-0.7" y="-2.4" width="1.4" height="4.8" rx="0.7" fill="var(--htree1)"/>
+  </g></g>`;
+}
+
+function stars(rnd, count, W) {
+  let out = '';
+  for (let i = 0; i < count; i++) {
+    const x = Math.round(16 + rnd() * (W - 32));
+    const y = Math.round(12 + rnd() * 88);
+    const r = (0.9 + rnd() * 1.1).toFixed(1);
+    out += `<circle class="scene-night scene-star" style="animation-delay:${(rnd() * 4).toFixed(1)}s" cx="${x}" cy="${y}" r="${r}" fill="var(--hsun)"/>`;
+  }
+  return out;
+}
+
+function fireflies(rnd, count, W, yLo, yHi) {
+  let out = '';
+  for (let i = 0; i < count; i++) {
+    const x = Math.round(40 + rnd() * (W - 80));
+    const y = Math.round(yLo + rnd() * (yHi - yLo));
+    out += `<g class="scene-night" transform="translate(${x},${y})"><g class="scene-fly" style="animation-delay:${(-rnd() * 8).toFixed(1)}s">
+      <circle r="4" fill="#E8C55B" opacity="0.18"/><circle r="1.6" fill="#E8C55B" opacity="0.9"/>
+    </g></g>`;
+  }
+  return out;
+}
+
+function tufts(rnd, count, W, yLo, yHi, color) {
+  let out = '';
+  for (let i = 0; i < count; i++) {
+    const x = Math.round(14 + rnd() * (W - 28));
+    const y = (yLo + rnd() * (yHi - yLo)).toFixed(1);
+    out += `<g stroke="${color}" stroke-width="1.6" stroke-linecap="round" opacity="0.5" fill="none">
+      <path d="M${x} ${y} q -2.5 -4.5 -4.5 -6.5"/><path d="M${x} ${y} q 0 -6 0 -8.5"/><path d="M${x} ${y} q 2.5 -4.5 4.5 -6.5"/>
+    </g>`;
+  }
+  return out;
+}
+
 export function gardenBannerSVG({ seed = 'bloom-garden', trees = 10, flowers = 5 } = {}) {
   let s = 7;
   for (const c of seed) s = (s * 31 + c.charCodeAt(0)) % 1e9;
@@ -39,8 +104,11 @@ export function gardenBannerSVG({ seed = 'bloom-garden', trees = 10, flowers = 5
   ];
 
   let out = `<rect width="${W}" height="${H}" fill="url(#bloomsky)"/>`;
-  out += `<circle cx="872" cy="46" r="26" fill="var(--hsun)"/>`;
-  out += `<circle cx="180" cy="38" r="12" fill="var(--hsun)" opacity="0.5"/>`;
+  out += stars(rnd, 14, W);
+  out += sunWithGlow(872, 46);
+  out += cloud(180, 40, 0.9, 48, 0);
+  out += cloud(560, 30, 0.6, 60, -20);
+  out += bird(320, 52, 0.9);
 
   const perLayer = [Math.ceil(trees * 0.4), Math.ceil(trees * 0.33), Math.floor(trees * 0.27)];
   layers.forEach((L, li) => {
@@ -77,10 +145,16 @@ export function gardenSceneSVG(plants) {
   const W = 1000, H = 260;
 
   let out = `<rect width="${W}" height="${H}" fill="url(#bloomsky2)"/>`;
-  out += `<circle cx="872" cy="46" r="26" fill="var(--hsun)"/>`;
-  out += `<circle cx="180" cy="38" r="12" fill="var(--hsun)" opacity="0.5"/>`;
+  out += stars(rnd, 16, W);
+  out += sunWithGlow(872, 46);
+  out += cloud(170, 42, 1, 44, 0);
+  out += cloud(520, 30, 0.7, 58, -18);
+  out += cloud(760, 62, 0.55, 50, -32);
+  out += bird(300, 56, 1);
+  out += bird(330, 48, 0.7);
 
-  // two back hill layers with a few trees for depth
+  // faraway ridge in haze, then the two familiar hill layers
+  out += `<path d="M0 ${H} L0 128 Q 180 104 400 118 T 700 108 T 1000 118 L1000 ${H} Z" fill="var(--hill1)" opacity="0.45"/>`;
   const back = [
     { hill: `M0 ${H} L0 150 Q 120 118 260 138 T 520 128 T 780 142 T 1000 126 L1000 ${H} Z`, fill: 'var(--hill1)', tree: 'var(--htree1)', ridge: 138 },
     { hill: `M0 ${H} L0 184 Q 150 154 330 172 T 660 162 T 1000 174 L1000 ${H} Z`, fill: 'var(--hill2)', tree: 'var(--htree2)', ridge: 172 },
@@ -96,6 +170,7 @@ export function gardenSceneSVG(plants) {
   }
   // front meadow the plants stand on
   out += `<path d="M0 ${H} L0 218 Q 250 204 500 212 T 1000 208 L1000 ${H} Z" fill="var(--hill3)"/>`;
+  out += tufts(rnd, 12, W, 226, 250, 'var(--htree2)');
 
   // plants: tallest in the middle, fanned outward
   const sorted = [...plants].sort((a, b) => b.level - a.level);
@@ -129,6 +204,10 @@ export function gardenSceneSVG(plants) {
     out += `<circle cx="${x}" cy="${y.toFixed(1)}" r="2.6" fill="var(--hflower)"/><circle cx="${x}" cy="${y.toFixed(1)}" r="1" fill="var(--hsun)"/>`;
     placed++;
   }
+  // by day two butterflies wander the meadow; by night the fireflies come out
+  out += butterfly(Math.round(W * 0.28 + rnd() * 90), 176 + rnd() * 22, -(rnd() * 6).toFixed(1));
+  out += butterfly(Math.round(W * 0.62 + rnd() * 90), 168 + rnd() * 22, -(rnd() * 9).toFixed(1));
+  out += fireflies(rnd, 6, W, 150, 214);
   out += plantsOut;
 
   return `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMax slice" role="img" aria-label="your garden">

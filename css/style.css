@@ -28,6 +28,7 @@
   --hsky1: #F1EEDA;
   --hsky2: #E9E9CD;
   --hsun: #F2E4AC;
+  --hcloud: rgba(255, 253, 244, 0.85);
   --hill1: #DCE2C1;
   --htree1: #B2C089;
   --hill2: #C7D2A2;
@@ -67,6 +68,7 @@
   --hsky1: #201E1B;
   --hsky2: #181714;
   --hsun: #E9E3CD;
+  --hcloud: rgba(233, 227, 205, 0.07);
   --hill1: #2A2D20;
   --htree1: #3E4530;
   --hill2: #333927;
@@ -549,6 +551,29 @@ details.done-details summary:hover { color: var(--ink); }
 }
 .scene-tip.show { opacity: 1; }
 .scene-plant.sel .scene-lift { filter: drop-shadow(0 0 6px var(--olive-2)); }
+
+/* garden scenery: gentle life. Day pieces hide at night and vice versa. */
+.scene-cloud { animation: cloud-drift 46s ease-in-out infinite alternate; }
+@keyframes cloud-drift { from { transform: translateX(-26px); } to { transform: translateX(26px); } }
+.scene-star { animation: twinkle 3.4s ease-in-out infinite; }
+@keyframes twinkle { 0%, 100% { opacity: 0.2; } 50% { opacity: 0.95; } }
+.scene-fly { animation: firefly 9s ease-in-out infinite alternate; }
+@keyframes firefly {
+  0% { transform: translate(0, 0); }
+  33% { transform: translate(14px, -10px); }
+  66% { transform: translate(-10px, -18px); }
+  100% { transform: translate(8px, -4px); }
+}
+.scene-flutter { animation: flutter 13s ease-in-out infinite alternate; }
+@keyframes flutter {
+  0% { transform: translate(0, 0) rotate(0deg); }
+  30% { transform: translate(26px, -14px) rotate(9deg); }
+  60% { transform: translate(-10px, -24px) rotate(-7deg); }
+  100% { transform: translate(18px, -6px) rotate(5deg); }
+}
+.scene-night { display: none; }
+[data-theme="dark"] .scene-night { display: initial; }
+[data-theme="dark"] .scene-day { display: none; }
 .plant-card.selected { border-color: var(--olive); box-shadow: 0 0 0 3px rgba(124, 139, 79, 0.15); }
 .scene-plant .scene-lift { transition: transform 0.25s ease; }
 .scene-plant:hover .scene-lift { transform: translateY(-6px); }
