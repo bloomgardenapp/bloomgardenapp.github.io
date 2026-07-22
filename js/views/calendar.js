@@ -348,7 +348,35 @@ function dayPanel(rr) {
   const focusBySkill = new Map();
   for (const s of sessions) focusBySkill.set(s.skillId, (focusBySkill.get(s.skillId) || 0) + s.minutes);
 
-  // ---- plan view: the day as an hour timeline (tap an empty slot to start an event there) ----
+  // one delete flow for both the list rows and the timeline blocks
+  async function deleteEvent(ev) {
+    if (!ev.repeat) {
+      if (await confirmDialog(`Delete “${ev.title}”?`)) {
+        store.state.events = store.state.events.filter((x) => x.id !== ev.id);
+        store.save();
+      }
+      return;
+    }
+    const scope = await choiceDialog(`“${ev.title}” repeats ${repeatLabel(ev)} — delete what?`, [
+      { label: 'Just this day', value: 'one' },
+      { label: 'This and all following days', value: 'following' },
+      { label: 'All days', value: 'all', danger: true },
+    ]);
+    if (!scope) return;
+    if (scope === 'one') {
+      ev.except = ev.except || [];
+      ev.except.push(selected);
+      toast(`Skipped for ${fmtDate(selected)}`, 'leaf');
+    } else if (scope === 'following') {
+      if (selected <= ev.date) store.state.events = store.state.events.filter((x) => x.id !== ev.id);
+      else { ev.until = addDays(selected, -1); toast(`“${ev.title}” now ends ${fmtDate(ev.until)}`, 'leaf'); }
+    } else {
+      store.state.events = store.state.events.filter((x) => x.id !== ev.id);
+    }
+    store.save();
+  }
+
+  // ---- plan view: the full day as an hour timeline (tap a slot to add, drag a block to move) ----
   const HOUR_PX = 48;
   function timelineEl() {
     const h24v = store.state.settings.hour24;
@@ -362,8 +390,7 @@ function dayPanel(rr) {
     }).sort((a, b) => a.start - b.start || b.end - a.end);
     const allday = evs.filter((ev) => !ev.time);
 
-    const startH = Math.min(8, ...timed.map((t) => Math.floor(t.start / 60)));
-    const endH = Math.max(22, ...timed.map((t) => Math.ceil(t.end / 60)));
+    const startH = 0, endH = 24; // the whole day — scroll opens at your first event
 
     // overlapping events share the width, google-style: greedy columns per cluster
     const colEnds = [];
@@ -387,34 +414,92 @@ function dayPanel(rr) {
     if (cluster.length) closeCluster();
 
     const grid = el('div', { class: 'day-grid', style: { height: `${(endH - startH) * HOUR_PX}px` } });
-    for (let h = startH; h <= endH; h++) {
+    for (let h = startH; h < endH; h++) {
       grid.append(el('div', { class: 'dg-hour', style: { top: `${(h - startH) * HOUR_PX}px` } },
         el('span', { class: 'dg-label' }, fmtTime(`${pad2(h % 24)}:00`, h24v).replace(':00', ''))));
     }
+    const mm2hhmm = (m) => `${pad2(Math.floor(m / 60) % 24)}:${pad2(m % 60)}`;
+    let justDragged = false;
     for (const t of timed) {
       const gap = 8;
-      grid.append(el('button', {
+      const dur = t.end - t.start;
+      const timeLabel = el('span', { class: 'dg-ev-time' }, `${fmtTime(t.ev.time, h24v)}${t.ev.timeEnd ? ` – ${fmtTime(t.ev.timeEnd, h24v)}` : ''}`);
+      const blk = el('button', {
         class: 'dg-ev' + (t.ev.important ? ' imp' : ''),
         style: {
           top: `${((t.start - startH * 60) / 60) * HOUR_PX + 1}px`,
-          height: `${Math.max(22, ((t.end - t.start) / 60) * HOUR_PX - 2)}px`,
+          height: `${Math.max(22, (dur / 60) * HOUR_PX - 2)}px`,
           left: `calc(56px + (100% - 56px - ${gap}px) * ${t.col / t.ncols})`,
           width: `calc((100% - 56px - ${gap}px) / ${t.ncols} - 4px)`,
           '--ev-c': t.ev.color || '#D89B8A',
         },
-        title: 'Edit event',
-        onClick: (e) => { e.stopPropagation(); editingId = t.ev.id; sfx.click(); rr(); },
+        title: 'Tap to edit · drag to move',
+        onClick: (e) => {
+          e.stopPropagation();
+          if (justDragged) return; // the drop already handled this gesture
+          editingId = t.ev.id;
+          sfx.click();
+          rr();
+        },
       },
         el('span', { class: 'dg-ev-t' }, (t.ev.important ? '★ ' : '') + t.ev.title),
-        el('span', { class: 'dg-ev-time' }, `${fmtTime(t.ev.time, h24v)}${t.ev.timeEnd ? ` – ${fmtTime(t.ev.timeEnd, h24v)}` : ''}`),
-      ));
-    }
-    if (selected === todayYmd()) {
-      const now = new Date();
-      const nowMin = now.getHours() * 60 + now.getMinutes();
-      if (nowMin >= startH * 60 && nowMin <= endH * 60) {
-        grid.append(el('div', { class: 'dg-now', style: { top: `${((nowMin - startH * 60) / 60) * HOUR_PX}px` } }));
-      }
+        timeLabel,
+        el('span', {
+          class: 'dg-x', title: 'Delete event', role: 'button', 'aria-label': 'Delete event',
+          onClick: (e) => { e.stopPropagation(); deleteEvent(t.ev); },
+        }, '✕'),
+      );
+      // drag to move: snaps to 15 minutes, keeps the duration, live label while dragging
+      let drag = null;
+      blk.addEventListener('pointerdown', (e) => {
+        if (e.target.closest('.dg-x')) return;
+        drag = { y0: e.clientY, top0: parseFloat(blk.style.top), cand: t.start };
+        blk.setPointerCapture(e.pointerId);
+      });
+      blk.addEventListener('pointermove', (e) => {
+        if (!drag) return;
+        const dy = e.clientY - drag.y0;
+        if (Math.abs(dy) > 4) drag.moved = true;
+        if (!drag.moved) return;
+        blk.classList.add('dragging');
+        const rawTop = drag.top0 + dy;
+        let cand = Math.round((startH * 60 + (rawTop / HOUR_PX) * 60) / 15) * 15;
+        cand = Math.max(0, Math.min(cand, 24 * 60 - dur));
+        drag.cand = cand;
+        blk.style.top = `${((cand - startH * 60) / 60) * HOUR_PX + 1}px`;
+        timeLabel.textContent = `${fmtTime(mm2hhmm(cand), h24v)}${t.ev.timeEnd ? ` – ${fmtTime(mm2hhmm(cand + dur), h24v)}` : ''}`;
+      });
+      blk.addEventListener('pointerup', async () => {
+        if (!drag) return;
+        const { moved, cand } = drag;
+        drag = null;
+        blk.classList.remove('dragging');
+        if (!moved || cand === t.start) return;
+        justDragged = true;
+        setTimeout(() => { justDragged = false; }, 0);
+        const apply = (target) => {
+          target.time = mm2hhmm(cand);
+          if (target.timeEnd) target.timeEnd = mm2hhmm(cand + dur);
+        };
+        if (t.ev.repeat) {
+          const scope = await choiceDialog(`“${t.ev.title}” repeats ${repeatLabel(t.ev)} — move what?`, [
+            { label: 'Just this day', value: 'one' },
+            { label: 'All days', value: 'all' },
+          ]);
+          if (!scope) { rr(); return; } // snap back
+          if (scope === 'one') {
+            t.ev.except = t.ev.except || [];
+            t.ev.except.push(selected);
+            const copy = { id: uid(), title: t.ev.title, time: t.ev.time, timeEnd: t.ev.timeEnd, color: t.ev.color, important: t.ev.important, repeat: null, days: null, date: selected, except: [], createdAt: new Date().toISOString() };
+            apply(copy);
+            store.state.events.push(copy);
+          } else apply(t.ev);
+        } else apply(t.ev);
+        sfx.click();
+        store.save();
+      });
+      blk.addEventListener('pointercancel', () => { blk.classList.remove('dragging'); drag = null; rr(); });
+      grid.append(blk);
     }
     // tap an empty slot → the form below starts right there (rounded to the half hour)
     grid.addEventListener('click', (e) => {
@@ -437,7 +522,6 @@ function dayPanel(rr) {
       titleIn.focus({ preventScroll: true });
       [titleIn, timeIn].forEach((f) => f.classList.add('attn'));
       setTimeout(() => [titleIn, timeIn].forEach((f) => f.classList.remove('attn')), 1400);
-      toast(`Starting at ${fmtTime(`${pad2(H)}:${pad2(M)}`, h24v)} — name it`, 'clock');
     });
     const wrap = el('div', { class: 'day-grid-wrap' },
       allday.length ? el('div', { class: 'row gap wrap', style: { marginBottom: '8px' } },
@@ -480,33 +564,7 @@ function dayPanel(rr) {
             el('button', { class: 'icon-btn', 'aria-label': 'Edit event', onClick: () => { editingId = ev.id; rr(); } }, ic('pencil', { size: 14 })),
             el('button', {
               class: 'icon-btn', 'aria-label': 'Delete event',
-              onClick: async () => {
-                if (!ev.repeat) {
-                  if (await confirmDialog(`Delete “${ev.title}”?`)) {
-                    store.state.events = store.state.events.filter((x) => x.id !== ev.id);
-                    store.save();
-                  }
-                  return;
-                }
-                // repeating event: delete what? (like Google Calendar)
-                const scope = await choiceDialog(`“${ev.title}” repeats ${repeatLabel(ev)} — delete what?`, [
-                  { label: 'Just this day', value: 'one' },
-                  { label: 'This and all following days', value: 'following' },
-                  { label: 'All days', value: 'all', danger: true },
-                ]);
-                if (!scope) return;
-                if (scope === 'one') {
-                  ev.except = ev.except || [];
-                  ev.except.push(selected);
-                  toast(`Skipped for ${fmtDate(selected)}`, 'leaf');
-                } else if (scope === 'following') {
-                  if (selected <= ev.date) store.state.events = store.state.events.filter((x) => x.id !== ev.id);
-                  else { ev.until = addDays(selected, -1); toast(`“${ev.title}” now ends ${fmtDate(ev.until)}`, 'leaf'); }
-                } else {
-                  store.state.events = store.state.events.filter((x) => x.id !== ev.id);
-                }
-                store.save();
-              },
+              onClick: () => deleteEvent(ev),
             }, ic('trash', { size: 14 })),
           ),
         )))
