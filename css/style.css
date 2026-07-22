@@ -257,8 +257,9 @@ input[type="date"].input, input[type="time"].input, input[type="number"].input {
 
 /* ============ header / greeting ============ */
 /* day-planner timeline (calendar day panel, "timeline" mode) */
-.day-grid-scroll { max-height: 480px; overflow-y: auto; border: 1.5px solid var(--line); border-radius: 14px; background: var(--card); }
-.day-grid { position: relative; }
+.day-grid-scroll { max-height: 480px; overflow-y: auto; overscroll-behavior: contain; border: 1.5px solid var(--line); border-radius: 14px; background: var(--card); }
+.day-grid { position: relative; margin: 12px 0 14px; }
+.input.attn { border-color: var(--olive); box-shadow: 0 0 0 3px var(--olive-soft); transition: box-shadow 0.25s; }
 .dg-hour { position: absolute; left: 0; right: 0; border-top: 1.5px dashed var(--line); }
 .dg-label { position: absolute; top: -8px; left: 8px; font-size: 10.5px; font-weight: 700; color: var(--muted); background: var(--card); padding: 0 3px; }
 .dg-ev {

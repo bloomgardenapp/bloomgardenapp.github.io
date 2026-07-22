@@ -432,8 +432,12 @@ function dayPanel(rr) {
       if (!editing) eventDraft.time = timeIn.value;
       timeIn.dispatchEvent(new Event('input', { bubbles: true }));
       sfx.click();
-      titleIn.focus();
-      toast(`Starting at ${fmtTime(`${pad2(H)}:${pad2(M)}`, h24v)} — name it below`, 'clock');
+      // bring the form to her — it lives below the fold on tall timelines
+      titleIn.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      titleIn.focus({ preventScroll: true });
+      [titleIn, timeIn].forEach((f) => f.classList.add('attn'));
+      setTimeout(() => [titleIn, timeIn].forEach((f) => f.classList.remove('attn')), 1400);
+      toast(`Starting at ${fmtTime(`${pad2(H)}:${pad2(M)}`, h24v)} — name it`, 'clock');
     });
     const wrap = el('div', { class: 'day-grid-wrap' },
       allday.length ? el('div', { class: 'row gap wrap', style: { marginBottom: '8px' } },
