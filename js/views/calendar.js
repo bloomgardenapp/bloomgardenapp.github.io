@@ -429,8 +429,8 @@ function dayPanel(rr) {
         style: {
           top: `${((t.start - startH * 60) / 60) * HOUR_PX + 1}px`,
           height: `${Math.max(22, (dur / 60) * HOUR_PX - 2)}px`,
-          left: `calc(56px + (100% - 56px - ${gap}px) * ${t.col / t.ncols})`,
-          width: `calc((100% - 56px - ${gap}px) / ${t.ncols} - 4px)`,
+          left: `calc(46px + (100% - 46px - ${gap}px) * ${t.col / t.ncols})`,
+          width: `calc((100% - 46px - ${gap}px) / ${t.ncols} - 4px)`,
           '--ev-c': t.ev.color || '#D89B8A',
         },
         title: 'Tap to edit · drag to move',
