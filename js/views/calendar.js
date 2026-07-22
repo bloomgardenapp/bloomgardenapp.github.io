@@ -449,32 +449,56 @@ function dayPanel(rr) {
           onClick: (e) => { e.stopPropagation(); deleteEvent(t.ev); },
         }, '✕'),
       );
-      // drag to move: snaps to 15 minutes, keeps the duration, live label while dragging
+      // drag to move: the block glides with the pointer (snap only on release), and
+      // dragging near the top/bottom edge auto-scrolls to hours that aren't in view
       let drag = null;
+      const updateDrag = () => {
+        if (!drag) return;
+        const rawTop = drag.top0 + (drag.lastY - drag.y0) + (drag.sc.scrollTop - drag.sc0);
+        const top = Math.max(0, Math.min(rawTop, (endH - startH) * HOUR_PX - drag.hpx));
+        blk.style.top = `${top}px`;
+        let cand = Math.round((startH * 60 + (top / HOUR_PX) * 60) / 15) * 15;
+        cand = Math.max(0, Math.min(cand, 24 * 60 - dur));
+        drag.cand = cand;
+        timeLabel.textContent = `${fmtTime(mm2hhmm(cand), h24v)}${t.ev.timeEnd ? ` – ${fmtTime(mm2hhmm(cand + dur), h24v)}` : ''}`;
+      };
+      const scrollLoop = () => {
+        if (!drag) return;
+        if (drag.speed) { drag.sc.scrollTop += drag.speed; updateDrag(); }
+        drag.raf = requestAnimationFrame(scrollLoop);
+      };
       blk.addEventListener('pointerdown', (e) => {
         if (e.target.closest('.dg-x')) return;
-        drag = { y0: e.clientY, top0: parseFloat(blk.style.top), cand: t.start };
-        blk.setPointerCapture(e.pointerId);
+        const sc = grid.closest('.day-grid-scroll');
+        drag = { y0: e.clientY, lastY: e.clientY, top0: parseFloat(blk.style.top), sc, sc0: sc.scrollTop, hpx: blk.offsetHeight, cand: t.start, speed: 0 };
+        try { blk.setPointerCapture(e.pointerId); } catch { /* synthetic pointers */ }
+        drag.raf = requestAnimationFrame(scrollLoop);
       });
       blk.addEventListener('pointermove', (e) => {
         if (!drag) return;
-        const dy = e.clientY - drag.y0;
-        if (Math.abs(dy) > 4) drag.moved = true;
+        drag.lastY = e.clientY;
+        if (Math.abs(e.clientY - drag.y0) > 4) drag.moved = true;
         if (!drag.moved) return;
         blk.classList.add('dragging');
-        const rawTop = drag.top0 + dy;
-        let cand = Math.round((startH * 60 + (rawTop / HOUR_PX) * 60) / 15) * 15;
-        cand = Math.max(0, Math.min(cand, 24 * 60 - dur));
-        drag.cand = cand;
-        blk.style.top = `${((cand - startH * 60) / 60) * HOUR_PX + 1}px`;
-        timeLabel.textContent = `${fmtTime(mm2hhmm(cand), h24v)}${t.ev.timeEnd ? ` – ${fmtTime(mm2hhmm(cand + dur), h24v)}` : ''}`;
+        // near an edge of the visible window → glide the scroll along
+        const sr = drag.sc.getBoundingClientRect();
+        const zone = 44;
+        if (e.clientY < sr.top + zone) drag.speed = -Math.ceil((sr.top + zone - e.clientY) / 6);
+        else if (e.clientY > sr.bottom - zone) drag.speed = Math.ceil((e.clientY - (sr.bottom - zone)) / 6);
+        else drag.speed = 0;
+        updateDrag();
       });
       blk.addEventListener('pointerup', async () => {
         if (!drag) return;
-        const { moved, cand } = drag;
+        const { moved, cand, raf } = drag;
+        cancelAnimationFrame(raf);
         drag = null;
         blk.classList.remove('dragging');
-        if (!moved || cand === t.start) return;
+        if (!moved || cand === t.start) {
+          blk.style.top = `${((t.start - startH * 60) / 60) * HOUR_PX + 1}px`; // settle back onto the grid
+          return;
+        }
+        blk.style.top = `${((cand - startH * 60) / 60) * HOUR_PX + 1}px`; // settle onto the snap before the re-render
         justDragged = true;
         setTimeout(() => { justDragged = false; }, 0);
         const apply = (target) => {
@@ -498,7 +522,12 @@ function dayPanel(rr) {
         sfx.click();
         store.save();
       });
-      blk.addEventListener('pointercancel', () => { blk.classList.remove('dragging'); drag = null; rr(); });
+      blk.addEventListener('pointercancel', () => {
+        if (drag) cancelAnimationFrame(drag.raf);
+        blk.classList.remove('dragging');
+        drag = null;
+        rr();
+      });
       grid.append(blk);
     }
     // tap an empty slot → the form below starts right there (rounded to the half hour)
