@@ -356,12 +356,14 @@ function dayPanel(rr) {
   const focusBySkill = new Map();
   for (const s of sessions) focusBySkill.set(s.skillId, (focusBySkill.get(s.skillId) || 0) + s.minutes);
 
-  // one delete flow for both the list rows and the timeline blocks
-  async function deleteEvent(ev) {
+  // one delete flow for both the list rows and the timeline blocks.
+  // localBlk: the timeline block element — removed in place, no full redraw.
+  async function deleteEvent(ev, localBlk) {
     if (!ev.repeat) {
       if (await confirmDialog(`Delete “${ev.title}”?`)) {
         store.state.events = store.state.events.filter((x) => x.id !== ev.id);
-        store.save();
+        if (localBlk) { store.save(true); localBlk.remove(); }
+        else store.save();
       }
       return;
     }
@@ -454,7 +456,7 @@ function dayPanel(rr) {
         timeLabel,
         el('span', {
           class: 'dg-x', title: 'Delete event', role: 'button', 'aria-label': 'Delete event',
-          onClick: (e) => { e.stopPropagation(); deleteEvent(t.ev); },
+          onClick: (e) => { e.stopPropagation(); deleteEvent(t.ev, blk); },
         }, '✕'),
       );
       // drag to move: the block glides with the pointer (snap only on release), and
@@ -526,9 +528,17 @@ function dayPanel(rr) {
             apply(copy);
             store.state.events.push(copy);
           } else apply(t.ev);
-        } else apply(t.ev);
+          sfx.click();
+          saveKeepScroll(); // repeat scopes reshape occurrences — needs the rerender
+          return;
+        }
+        // simple move: the block already sits exactly where it belongs — save silently,
+        // no rerender, nothing on screen so much as blinks
+        apply(t.ev);
+        t.start = cand;
+        t.end = cand + dur;
         sfx.click();
-        saveKeepScroll();
+        store.save(true);
       });
       blk.addEventListener('pointercancel', () => {
         if (drag) cancelAnimationFrame(drag.raf);
@@ -581,7 +591,7 @@ function dayPanel(rr) {
   }
 
   const modeChips = el('div', { class: 'row', style: { gap: '4px' } },
-    ...[['list', 'list'], ['plan', 'timeline']].map(([v, label]) => el('button', {
+    ...[['list', 'list'], ['plan', 'day planner']].map(([v, label]) => el('button', {
       class: 'chip chip-btn' + (dayMode === v ? ' sel' : ''), dataset: { mode: v },
       onClick: () => { if (dayMode !== v) { dayMode = v; sfx.click(); rr(); } },
     }, label)));

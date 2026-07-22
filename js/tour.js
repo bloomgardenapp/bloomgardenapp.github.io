@@ -1,5 +1,5 @@
 // tour.js — interactive walkthrough. Dims the app and spotlights the real sections,
-// one at a time, with a little bubble explaining each. Gentle: 5 stops, skippable.
+// one at a time, with a little bubble explaining each. Gentle: 6 stops, skippable.
 import { el } from './util.js';
 import { sfx } from './audio.js';
 
@@ -23,6 +23,12 @@ const STEPS = [
     target: () => document.querySelector('#quicklog')?.closest('.card'),
     title: 'Add time',
     text: 'Already did something? Type it in plain words — like “30m piano” — and it still counts.',
+  },
+  {
+    route: '#/calendar',
+    target: () => document.querySelector('#view .day-panel'),
+    title: 'Plan your day, hour by hour',
+    text: 'Click any day, then switch “list” to “day planner” to see it as a schedule. Tap an empty time to add an event there, and drag events up or down to move them.',
   },
   {
     route: '#/focus',
