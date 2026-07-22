@@ -106,7 +106,15 @@ h1, h2, h3 { font-family: var(--font-display); color: var(--ink-strong); font-we
 h1 { font-size: 30px; }
 h2 { font-size: 20px; }
 h3 { font-size: 16.5px; }
-h1 em, h2 em, h3 em, .logo em {
+h1 em, h2 em, h3 em {
+  /* Playfair's italics have proper swash tails — Fraunces' italic J ends in a flat
+     slice that reads as a broken glyph (her feedback on "Jasmine") */
+  font-family: 'Playfair Display', var(--font-display);
+  font-style: italic;
+  font-weight: 520;
+  color: var(--olive-2);
+}
+.logo em {
   font-family: var(--font-display);
   font-style: italic;
   font-weight: 480;
@@ -265,8 +273,8 @@ input[type="date"].input, input[type="time"].input, input[type="number"].input {
 .signin-banner strong { color: var(--olive-2); }
 .signin-banner .btn { padding: 6px 14px; font-size: 13px; }
 .view-head { display: flex; align-items: flex-end; gap: 14px; flex-wrap: wrap; margin-bottom: 6px; }
-.view-head .sub { color: var(--muted); font-weight: 600; margin-top: 8px; font-size: 13.5px; }
-.daily-quote { font-family: var(--font-display); font-style: italic; font-size: 16.5px; color: var(--olive-2); margin-top: 7px; max-width: 620px; line-height: 1.45; }
+.view-head .sub { color: var(--muted); font-weight: 600; margin-top: 8px; font-size: 13.5px; margin-left: 3px; }
+.daily-quote { font-family: var(--font-display); font-style: italic; font-size: 16.5px; color: var(--olive-2); margin-top: 7px; max-width: 620px; line-height: 1.45; margin-left: 3px; }
 .daily-quote .quote-by { font-family: var(--font-body, 'Quicksand', sans-serif); font-style: normal; font-size: 12.5px; font-weight: 600; color: var(--muted); }
 .squiggle { position: relative; display: inline-block; }
 .squiggle::after {

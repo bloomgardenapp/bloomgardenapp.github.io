@@ -203,7 +203,7 @@ export function render(root) {
         topY = nr.top + (bb.y - vb.y) * (nr.height / vb.height);
       } catch { /* pre-paint — the estimate above is fine */ }
       sceneTip.style.left = `${gr.left - r.left + gr.width / 2}px`;
-      sceneTip.style.top = `${topY - r.top - 14}px`;
+      sceneTip.style.top = `${topY - r.top - 20}px`; // 14px air + the 6px hover lift the plant is about to do
       sceneTip.classList.add('show');
     },
     onMouseleave: () => sceneTip.classList.remove('show'),
