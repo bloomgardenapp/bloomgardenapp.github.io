@@ -71,7 +71,7 @@ struct GardenView: View {
 
                 keepsakeShelf
             }
-            .padding(.horizontal, 16)
+            .padding(.horizontal, 22)
             .padding(.top, 14)
             .padding(.bottom, 28)
         }
@@ -293,10 +293,10 @@ struct SkillDetailsView: View {
                         Text("\(lv.need - lv.into) XP to level \(lv.level + 1) — that's ~\(fmtMin(lv.need - lv.into)) of focus")
                             .font(.quicksand(11.5)).foregroundColor(theme.muted)
                     }
-                    .padding(.horizontal, 16)
+                    .padding(.horizontal, 22)
 
                     TierStrip(store: store, tier: store.tier(sk.id), capLabel: "\(sk.name) now", plantName: sk.name)
-                        .padding(.horizontal, 16)
+                        .padding(.horizontal, 22)
 
                     VStack(alignment: .leading, spacing: 8) {
                         Text("LAST 14 DAYS").font(.quicksandBold(10)).kerning(1).foregroundColor(theme.muted)
@@ -328,7 +328,7 @@ struct SkillDetailsView: View {
                             }
                         }
                     }
-                    .padding(.horizontal, 16)
+                    .padding(.horizontal, 22)
 
                     HStack(spacing: 8) {
                         Button("Uproot") { confirmUproot = true }
@@ -420,7 +420,7 @@ struct PlantBookView: View {
                     .card(padding: 12)
                 }
             }
-            .padding(.horizontal, 16)
+            .padding(.horizontal, 22)
             .padding(.bottom, 24)
         }
         .background(theme.bg)

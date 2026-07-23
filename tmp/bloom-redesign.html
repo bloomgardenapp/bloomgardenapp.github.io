@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Bloom flower redesign</title>
+  <style>
+    @font-face {
+      font-family: Fraunces;
+      src: url("/ios/Bloom/Fonts/Fraunces-Regular.ttf");
+    }
+    @font-face {
+      font-family: Quicksand;
+      src: url("/ios/Bloom/Fonts/Quicksand-Medium.ttf");
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; min-height: 100%; }
+    body {
+      min-width: 1120px;
+      min-height: 720px;
+      padding: 42px 46px;
+      background:
+        radial-gradient(circle at 10% 8%, rgba(236, 215, 188, .34), transparent 30%),
+        radial-gradient(circle at 88% 6%, rgba(206, 221, 185, .34), transparent 27%),
+        #faf6ed;
+      color: #3d452f;
+      font-family: Quicksand, system-ui, sans-serif;
+    }
+    header { margin-bottom: 38px; }
+    h1 {
+      margin: 0;
+      font: 36px/1 Fraunces, Georgia, serif;
+    }
+    h1 em { color: #7c8b4f; font-weight: 400; }
+    p {
+      margin: 9px 0 0;
+      color: #83816f;
+      font-size: 14px;
+    }
+    .progression {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      align-items: end;
+      min-height: 510px;
+      padding: 32px 18px 26px;
+      border: 1px solid #ded8c6;
+      border-radius: 24px;
+      background: rgba(255, 253, 248, .86);
+      box-shadow: 0 22px 55px rgba(70, 67, 48, .08);
+    }
+    .stage {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-end;
+      min-width: 0;
+    }
+    .stage-label {
+      position: absolute;
+      top: 0;
+      color: #807c6e;
+      font-size: 14px;
+      font-weight: 700;
+      letter-spacing: .05em;
+      text-transform: uppercase;
+    }
+    .art {
+      display: flex;
+      align-items: end;
+      justify-content: center;
+      height: 365px;
+    }
+    .plant { display: block; }
+    .caption {
+      margin-top: -4px;
+      color: #6e735d;
+      font: 18px Fraunces, Georgia, serif;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Bloom’s new <em>growth story</em></h1>
+    <p>Reference-inspired keyframes using Bloom’s existing lightweight SVG renderer</p>
+  </header>
+  <main class="progression" id="progression"></main>
+  <script type="module">
+    import { plantSVG } from "/js/plant.js";
+
+    const levels = [1, 2, 4, 6, 8, 10, 12];
+    const captions = ["Sprout", "Shoot", "Young bud", "Full bud", "First bloom", "Bouquet", "Radiant"];
+    document.querySelector("#progression").innerHTML = levels.map((level, index) => `
+      <section class="stage">
+        <div class="stage-label">Level ${level}</div>
+        <div class="art">${plantSVG({
+          id: "bloom-redesign",
+          species: "bloom",
+          color: "#D57B5B",
+        }, level, 148)}</div>
+        <div class="caption">${captions[index]}</div>
+      </section>
+    `).join("");
+  </script>
+</body>
+</html>

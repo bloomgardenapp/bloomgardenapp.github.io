@@ -31,7 +31,7 @@ struct FocusView: View {
                 manualCard
                 historyCard
             }
-            .padding(.horizontal, 16)
+            .padding(.horizontal, 22)
             .padding(.top, 14)
             .padding(.bottom, 28)
         }

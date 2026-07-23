@@ -113,9 +113,9 @@ function drawBloom(L, c, rnd, P) {
       g += leaf(x, y, len, -(30 + i * 2.5), 110, 43, P);
     }
   }
-  if (L >= 3 && L < 7) g += bloomBud(topX, topY - 2, 5.2 + (L - 3) * 1.05, c, P);
+  if (L >= 3 && L < 7) g += bloomBud(topX, topY - 2, 6.4 + (L - 3) * 1.3, c, P);
   if (L >= 7) {
-    const flowerSizes = [7.2, 9.2, 10.4, 11.6, 12.7, 13.8];
+    const flowerSizes = [8.5, 11.2, 12.1, 13, 13.8, 14.5];
     g += flower(topX, topY - 3, flowerSizes[L - 7], c, P);
   }
   g += sparkles(topX, topY, L);

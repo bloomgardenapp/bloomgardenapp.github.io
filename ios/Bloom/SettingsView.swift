@@ -160,7 +160,7 @@ struct SettingsView: View {
                 .padding(.top, 16)
                 .padding(.bottom, 24)
             }
-            .padding(.horizontal, 18)
+            .padding(.horizontal, 22)
         }
         .background(theme.bg)
         .alert("Start completely fresh? Tasks, notes, garden — everything is wiped.", isPresented: $confirmReset) {

@@ -107,7 +107,7 @@ struct SkillEditorView: View {
                 .padding(.top, 8)
                 .padding(.bottom, 24)
             }
-            .padding(.horizontal, 18)
+            .padding(.horizontal, 22)
         }
         .background(theme.bg)
         .onAppear {

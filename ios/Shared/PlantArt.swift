@@ -172,6 +172,22 @@ struct PlantPainter {
         ctx.fill(hl.applying(rot), with: .color(Color(red: 1, green: 252 / 255, blue: 240 / 255).opacity(0.75)))
     }
 
+    private func bloomBud(_ ctx: GraphicsContext, x: Double, y: Double, r: Double, color: String) {
+        var cup = Path()
+        cup.move(to: CGPoint(x: x, y: y + r * 0.72))
+        cup.addQuadCurve(to: CGPoint(x: x - r * 0.72, y: y - r * 0.22),
+                         control: CGPoint(x: x - r * 0.95, y: y + r * 0.2))
+        cup.addQuadCurve(to: CGPoint(x: x, y: y + r * 0.52),
+                         control: CGPoint(x: x - r * 0.12, y: y + r * 0.02))
+        cup.addQuadCurve(to: CGPoint(x: x + r * 0.78, y: y - r * 0.2),
+                         control: CGPoint(x: x + r * 0.18, y: y + r * 0.02))
+        cup.addQuadCurve(to: CGPoint(x: x, y: y + r * 0.72),
+                         control: CGPoint(x: x + r * 0.96, y: y + r * 0.25))
+        cup.closeSubpath()
+        ctx.fill(cup, with: .color(Color(hex: "#67A84F")))
+        bud(ctx, x: x, y: y, r: r, color: color)
+    }
+
     private func sparkle(_ ctx: GraphicsContext, x: Double, y: Double, r: Double) {
         var p = Path()
         p.move(to: CGPoint(x: x, y: y - r))
@@ -193,55 +209,87 @@ struct PlantPainter {
     // MARK: species
 
     private func drawBloom(_ ctx: GraphicsContext, _ L: Int, _ c: String, _ rnd: inout PlantRandom) {
-        let h = L == 1 ? 9.0 : min(14 + Double(L) * 5.2, 76)
-        let lean = (rnd.next() - 0.5) * 5
+        // Deliberate keyframes make every couple of levels feel like a real new stage:
+        // sprout → leafy shoot → glossy bud → open flower → branching bouquet.
+        let heights: [Double] = [0, 10, 23, 32, 39, 47, 55, 60, 65, 69, 72, 74, 76]
+        let h = heights[L]
+        let lean = L == 1 ? 0 : (rnd.next() - 0.5) * 2.4
         let topX = CX + lean, topY = SOIL - h
-        let stemCol = Color(hex: "#55A86C")
+        let stemCol = Color(hex: "#5AA653")
 
         if L >= 2 {
             var stem = Path()
             stem.move(to: CGPoint(x: CX, y: SOIL))
-            stem.addCurve(to: CGPoint(x: topX, y: topY),
-                          control1: CGPoint(x: CX, y: SOIL - h * 0.45),
-                          control2: CGPoint(x: topX, y: SOIL - h * 0.6))
-            strokePath(ctx, stem, stemCol, L >= 7 ? 6 : 5)
-        }
-        if L >= 9 {
-            let sy = SOIL - h * 0.52
-            var p = Path()
-            p.move(to: CGPoint(x: CX - 1, y: sy))
-            p.addQuadCurve(to: CGPoint(x: CX - 19, y: sy - 13), control: CGPoint(x: CX - 13, y: sy - 6))
-            strokePath(ctx, p, stemCol, 4)
-            flower(ctx, x: CX - 19, y: sy - 15, r: 6.4, color: c)
+            stem.addCurve(to: CGPoint(x: topX, y: topY + 1),
+                          control1: CGPoint(x: CX, y: SOIL - h * 0.42),
+                          control2: CGPoint(x: topX, y: SOIL - h * 0.7))
+            strokePath(ctx, stem, stemCol, L >= 7 ? 5.4 : 4.6)
         }
         if L >= 10 {
-            let sy = SOIL - h * 0.34
-            var p = Path()
-            p.move(to: CGPoint(x: CX + 1, y: sy))
-            p.addQuadCurve(to: CGPoint(x: CX + 19, y: sy - 10), control: CGPoint(x: CX + 13, y: sy - 4))
-            strokePath(ctx, p, stemCol, 4)
-            flower(ctx, x: CX + 19, y: sy - 12, r: 5.6, color: c)
+            let leftY = SOIL - h * 0.55
+            let rightY = SOIL - h * 0.42
+            let sideGrow = Double(L - 10) * 0.7
+            var left = Path()
+            left.move(to: CGPoint(x: CX - 1, y: leftY))
+            left.addQuadCurve(to: CGPoint(x: CX - 22, y: leftY - 14),
+                              control: CGPoint(x: CX - 13, y: leftY - 5))
+            strokePath(ctx, left, stemCol, 3.8)
+            flower(ctx, x: CX - 23, y: leftY - 16, r: 5.8 + sideGrow, color: c)
+
+            var right = Path()
+            right.move(to: CGPoint(x: CX + 1, y: rightY))
+            right.addQuadCurve(to: CGPoint(x: CX + 22, y: rightY - 13),
+                               control: CGPoint(x: CX + 13, y: rightY - 4))
+            strokePath(ctx, right, stemCol, 3.8)
+            flower(ctx, x: CX + 23, y: rightY - 15, r: 5.3 + sideGrow, color: c)
+        }
+        if L >= 12 {
+            let by = topY + 20
+            var leftBudStem = Path()
+            leftBudStem.move(to: CGPoint(x: CX - 4, y: by + 10))
+            leftBudStem.addQuadCurve(to: CGPoint(x: CX - 29, y: by - 2),
+                                     control: CGPoint(x: CX - 20, y: by + 4))
+            strokePath(ctx, leftBudStem, stemCol, 2.8)
+            ctx.fill(Path(ellipseIn: CGRect(x: CX - 32.6, y: by - 5.6, width: 5.2, height: 5.2)),
+                     with: .color(shade(c, 8)))
+
+            var rightBudStem = Path()
+            rightBudStem.move(to: CGPoint(x: CX + 4, y: by + 7))
+            rightBudStem.addQuadCurve(to: CGPoint(x: CX + 29, y: by - 5),
+                                      control: CGPoint(x: CX + 21, y: by + 2))
+            strokePath(ctx, rightBudStem, stemCol, 2.8)
+            ctx.fill(Path(ellipseIn: CGRect(x: CX + 27.6, y: by - 8.4, width: 4.8, height: 4.8)),
+                     with: .color(shade(c, 8)))
         }
         if L == 1 {
             var stem = Path()
             stem.move(to: CGPoint(x: CX, y: SOIL))
             stem.addLine(to: CGPoint(x: CX, y: SOIL - 9))
-            strokePath(ctx, stem, stemCol, 4.5)
-            leaf(ctx, x: CX, y: SOIL - 8, len: 13, ang: -148, hue: 103, light: 44)
-            leaf(ctx, x: CX, y: SOIL - 8, len: 13, ang: -32, hue: 112, light: 40)
+            strokePath(ctx, stem, stemCol, 4.2)
+            leaf(ctx, x: CX, y: SOIL - 8, len: 14.5, ang: -150, hue: 103, light: 44)
+            leaf(ctx, x: CX, y: SOIL - 8, len: 14.5, ang: -30, hue: 112, light: 40)
         } else {
-            let pairs = min(1 + Int(Double(L) / 2.6), 4)
+            let pairs = L <= 2 ? 1 : L <= 4 ? 2 : L <= 8 ? 3 : 4
+            let positions: [Double] = pairs == 1 ? [0.83]
+                : pairs == 2 ? [0.42, 0.78]
+                : pairs == 3 ? [0.3, 0.54, 0.76]
+                : [0.25, 0.43, 0.61, 0.77]
             for i in 0..<pairs {
-                let t = 0.78 - Double(i) * 0.2
+                let t = positions[i]
                 let y = SOIL - h * t
-                let x = CX + lean * (1 - t) * 0.6
-                let len = min(12 + Double(L) * 1.15, 24) * (1 - Double(i) * 0.12)
-                leaf(ctx, x: x, y: y, len: len, ang: 180 + 34 + rnd.next() * 8, hue: 100 + rnd.next() * 18, light: 42 + rnd.next() * 6)
-                leaf(ctx, x: x, y: y, len: len, ang: -(34 + rnd.next() * 8), hue: 100 + rnd.next() * 18, light: 42 + rnd.next() * 6)
+                let x = CX + lean * t
+                let len = (13.5 + min(Double(L) * 0.72, 6.5)) * (1 - Double(i) * 0.045)
+                leaf(ctx, x: x, y: y, len: len, ang: 210 + Double(i) * 2.5, hue: 105, light: 43)
+                leaf(ctx, x: x, y: y, len: len, ang: -(30 + Double(i) * 2.5), hue: 110, light: 43)
             }
         }
-        if L >= 3 && L < 7 { bud(ctx, x: topX, y: topY - 2, r: 4.2 + Double(L - 3) * 1.1, color: c) }
-        if L >= 7 { flower(ctx, x: topX, y: topY - 3, r: 8 + Double(L - 7) * 0.9, color: c) }
+        if L >= 3 && L < 7 {
+            bloomBud(ctx, x: topX, y: topY - 2, r: 6.4 + Double(L - 3) * 1.3, color: c)
+        }
+        if L >= 7 {
+            let flowerSizes: [Double] = [8.5, 11.2, 12.1, 13, 13.8, 14.5]
+            flower(ctx, x: topX, y: topY - 3, r: flowerSizes[L - 7], color: c)
+        }
         sparkles(ctx, topX: topX, topY: topY, L: L)
     }
 

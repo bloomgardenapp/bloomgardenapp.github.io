@@ -68,7 +68,7 @@ struct TodayView: View {
                 gardenPeek
                 upNextCard(today: today)
             }
-            .padding(.horizontal, 16)
+            .padding(.horizontal, 22)
             .padding(.top, 14)
             .padding(.bottom, 28)
         }
@@ -282,8 +282,9 @@ struct TodayView: View {
             if topSkills.isEmpty {
                 EmptyState(icon: "pot", text: "No plants yet — add some time above or visit the garden.")
             } else {
-                HStack(alignment: .bottom, spacing: 24) {
-                    Spacer(minLength: 0)
+                // flexible columns — fixed-width children here once forced the whole
+                // page to overflow its side margins (the VStack min-width trap)
+                HStack(alignment: .bottom, spacing: 8) {
                     ForEach(Array(topSkills)) { sk in
                         let lv = store.levelOf(sk.id)
                         VStack(spacing: 4) {
@@ -293,11 +294,14 @@ struct TodayView: View {
                                 Text(sk.name).font(.quicksandBold(12))
                             }
                             .foregroundColor(theme.inkStrong)
+                            .lineLimit(1)
                             Text("Lv \(lv.level) · \(fmtMin(store.weekMinutes(sk.id))) this wk")
                                 .font(.quicksand(10.5)).foregroundColor(theme.muted)
+                                .lineLimit(1)
+                                .minimumScaleFactor(0.8)
                         }
+                        .frame(maxWidth: .infinity)
                         .onTapGesture { switchTab(.garden) }
-                        Spacer(minLength: 0)
                     }
                 }
             }
