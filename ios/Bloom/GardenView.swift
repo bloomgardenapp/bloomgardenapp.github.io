@@ -25,7 +25,7 @@ struct GardenView: View {
         let topSk = stripSkillId.flatMap { id in skills.first { $0.id == id } } ?? skills.first
 
         ScrollView {
-            VStack(alignment: .leading, spacing: 14) {
+            VStack(alignment: .leading, spacing: 18) {
                 ViewHeader(prefix: "Your ", em: "garden", icon: "sprout",
                            sub: skills.isEmpty
                                ? "Every skill you practice becomes a plant."
@@ -72,8 +72,8 @@ struct GardenView: View {
                 keepsakeShelf
             }
             .padding(.horizontal, 16)
-            .padding(.top, 8)
-            .padding(.bottom, 20)
+            .padding(.top, 14)
+            .padding(.bottom, 28)
         }
         .sheet(isPresented: $showSkillEditor) {
             SkillEditorView(store: store) { _ in }

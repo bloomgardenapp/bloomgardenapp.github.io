@@ -58,7 +58,7 @@ struct TodayView: View {
         let name = store.state.settings.name.isEmpty ? "friend" : store.state.settings.name
 
         ScrollView {
-            VStack(alignment: .leading, spacing: 14) {
+            VStack(alignment: .leading, spacing: 18) {
                 header(greet: greet, gIcon: gIcon, name: name)
                 statsRow(today: today)
                 planCard(today: today)
@@ -69,8 +69,8 @@ struct TodayView: View {
                 upNextCard(today: today)
             }
             .padding(.horizontal, 16)
-            .padding(.top, 8)
-            .padding(.bottom, 20)
+            .padding(.top, 14)
+            .padding(.bottom, 28)
         }
         .scrollDismissesKeyboard(.interactively)
     }
@@ -79,7 +79,7 @@ struct TodayView: View {
 
     private func header(greet: String, gIcon: String, name: String) -> some View {
         HStack(alignment: .top) {
-            VStack(alignment: .leading, spacing: 4) {
+            VStack(alignment: .leading, spacing: 6) {
                 HStack(spacing: 7) {
                     (Text("\(greet), ").font(.display(26))
                         + Text(name).font(.displayItalic(26)).foregroundColor(theme.olive2))
@@ -108,8 +108,8 @@ struct TodayView: View {
     }
 
     private func statsRow(today: String) -> some View {
-        let cols = [GridItem(.flexible(), spacing: 8), GridItem(.flexible(), spacing: 8)]
-        return LazyVGrid(columns: cols, spacing: 8) {
+        let cols = [GridItem(.flexible(), spacing: 10), GridItem(.flexible(), spacing: 10)]
+        return LazyVGrid(columns: cols, spacing: 10) {
             StatTile(icon: "flame", tile: theme.peachSoft, num: String(store.streak()), label: "day streak")
             StatTile(icon: "stopwatch", tile: theme.mintSoft, num: fmtMin(store.minutesOn(today)), label: "focused today")
             StatTile(icon: "check", tile: theme.greenSoft, num: String(store.tasksDoneOn(today)), label: "tasks done today")
@@ -127,7 +127,7 @@ struct TodayView: View {
             .filter { $0.occurs(on: today) }
             .sorted { ($0.time ?? "") < ($1.time ?? "") }
 
-        return VStack(alignment: .leading, spacing: 10) {
+        return VStack(alignment: .leading, spacing: 13) {
             HStack {
                 BloomTitle(prefix: "Today's ", em: "plan", icon: "clipboard")
                 Spacer()
@@ -157,7 +157,7 @@ struct TodayView: View {
     // MARK: quick log
 
     private var quickLogCard: some View {
-        VStack(alignment: .leading, spacing: 10) {
+        VStack(alignment: .leading, spacing: 13) {
             BloomTitle(prefix: "Add ", em: "time", icon: "bolt")
             QuickLogBox(store: store)
         }
@@ -173,7 +173,7 @@ struct TodayView: View {
             .sorted { (($0.done ? 1 : 0), $0.createdAt) < (($1.done ? 1 : 0), $1.createdAt) }
         let done = tasks.filter(\.done).count
 
-        return VStack(alignment: .leading, spacing: 8) {
+        return VStack(alignment: .leading, spacing: 11) {
             HStack {
                 BloomTitle(prefix: "This ", em: "week", icon: "check-square")
                 Spacer()
@@ -196,7 +196,7 @@ struct TodayView: View {
                     }
                     .buttonStyle(.plain)
                 }
-                .padding(.vertical, 2)
+                .padding(.vertical, 5)
             }
             TextField("＋ Add something for this week…", text: $weekTaskText)
                 .textFieldStyle(BloomFieldStyle())
@@ -242,7 +242,7 @@ struct TodayView: View {
         }
         let total = values.reduce(0, +)
 
-        return VStack(alignment: .leading, spacing: 10) {
+        return VStack(alignment: .leading, spacing: 13) {
             HStack(spacing: 6) {
                 BloomTitle(prefix: "Your ", em: "focus", icon: "bars")
                 Spacer()
@@ -270,7 +270,7 @@ struct TodayView: View {
             }
             .prefix(3)
 
-        return VStack(alignment: .leading, spacing: 10) {
+        return VStack(alignment: .leading, spacing: 13) {
             HStack {
                 BloomTitle(prefix: "Garden ", em: "peek", icon: "sprout")
                 Spacer()
@@ -318,7 +318,7 @@ struct TodayView: View {
         items.sort { ($0.date, $0.ev.time ?? "") < ($1.date, $1.ev.time ?? "") }
         let top = items.prefix(5)
 
-        return VStack(alignment: .leading, spacing: 10) {
+        return VStack(alignment: .leading, spacing: 13) {
             BloomTitle(prefix: "Up ", em: "next", icon: "arrow")
             if top.isEmpty {
                 Text("A clear week ahead.").font(.quicksand(13)).foregroundColor(theme.muted)
@@ -349,7 +349,7 @@ struct EventRow: View {
 
     var body: some View {
         HStack(spacing: 8) {
-            RoundedRectangle(cornerRadius: 2).fill(Color(hex: event.color)).frame(width: 4, height: 22)
+            RoundedRectangle(cornerRadius: 2).fill(Color(hex: event.color)).frame(width: 4, height: 24)
             Text(timeText).font(.quicksandBold(12)).foregroundColor(theme.muted)
             Text(event.title).font(.quicksand(13.5)).foregroundColor(theme.ink).lineLimit(1)
             Spacer()

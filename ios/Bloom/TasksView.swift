@@ -14,7 +14,7 @@ struct TaskRow: View {
     var body: some View {
         HStack(alignment: .center, spacing: 10) {
             CheckButton(checked: task.done) { store.toggleTask(task.id) }
-            VStack(alignment: .leading, spacing: 3) {
+            VStack(alignment: .leading, spacing: 5) {
                 if editing {
                     TextField("", text: $editText)
                         .textFieldStyle(BloomFieldStyle())
@@ -43,14 +43,14 @@ struct TaskRow: View {
                 Ic(name: "pencil", size: 13).foregroundColor(theme.muted).padding(6)
             }
         }
-        .padding(.vertical, 3)
+        .padding(.vertical, 6)
     }
 
     @ViewBuilder private var chipsRow: some View {
         let sk = store.skill(task.skillId)
         let hasChips = (showDue && task.due != nil && !task.done) || task.repeatRule != nil || sk != nil || (task.priority > 0 && !task.done)
         if hasChips {
-            HStack(spacing: 4) {
+            HStack(spacing: 5) {
                 if showDue, let due = task.due, !task.done {
                     let diff = dayDiff(todayYmd(), due)
                     Chip(text: relDue(due), icon: "calendar", style: diff < 0 ? .overdue : diff == 0 ? .dueToday : .plain)
@@ -98,13 +98,13 @@ struct TasksView: View {
         let overdue = open.filter { $0.due != nil && $0.due! < today }.sorted(by: bySort)
 
         return ScrollView {
-            VStack(alignment: .leading, spacing: 14) {
+            VStack(alignment: .leading, spacing: 18) {
                 ViewHeader(prefix: "Your ", em: "tasks", icon: "check-square",
                            sub: "Link a task to a plant to keep its work in one place.") { EmptyView() }
 
                 addForm
 
-                VStack(alignment: .leading, spacing: 8) {
+                VStack(alignment: .leading, spacing: 10) {
                     if !store.state.skills.isEmpty { filterRow }
                     if overdue.isEmpty && dueToday.isEmpty && someday.isEmpty && upcoming.isEmpty {
                         EmptyState(icon: "leaf", text: filterSkill == nil
@@ -120,8 +120,8 @@ struct TasksView: View {
                 .card()
             }
             .padding(.horizontal, 16)
-            .padding(.top, 8)
-            .padding(.bottom, 20)
+            .padding(.top, 14)
+            .padding(.bottom, 28)
         }
         .scrollDismissesKeyboard(.interactively)
         .sheet(isPresented: $showSkillEditor) {

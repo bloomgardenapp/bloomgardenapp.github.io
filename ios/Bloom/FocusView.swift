@@ -20,7 +20,7 @@ struct FocusView: View {
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 14) {
+            VStack(alignment: .leading, spacing: 18) {
                 ViewHeader(prefix: "Time to ", em: "focus", icon: "hourglass",
                            sub: "Deep work, one session at a time.") { EmptyView() }
                 if store.state.timer != nil {
@@ -32,8 +32,8 @@ struct FocusView: View {
                 historyCard
             }
             .padding(.horizontal, 16)
-            .padding(.top, 8)
-            .padding(.bottom, 20)
+            .padding(.top, 14)
+            .padding(.bottom, 28)
         }
         .scrollDismissesKeyboard(.interactively)
         .sheet(isPresented: $showSkillEditor) {
@@ -363,7 +363,7 @@ struct FocusView: View {
     // MARK: manual + history
 
     private var manualCard: some View {
-        VStack(alignment: .leading, spacing: 10) {
+        VStack(alignment: .leading, spacing: 13) {
             BloomTitle(prefix: "Add ", em: "time", icon: "pencil")
             QuickLogBox(store: store)
             Text("Works for the past too — “30m piano yesterday” or “1h math 2026-07-01”.")
@@ -374,7 +374,7 @@ struct FocusView: View {
 
     private var historyCard: some View {
         let sessions = store.state.sessions.sorted { $0.at > $1.at }.prefix(10)
-        return VStack(alignment: .leading, spacing: 10) {
+        return VStack(alignment: .leading, spacing: 13) {
             HStack {
                 BloomTitle(prefix: "Recent ", em: "sessions", icon: "clock")
                 Spacer()
@@ -401,7 +401,7 @@ struct FocusView: View {
                     }
                     .buttonStyle(.plain)
                 }
-                .padding(.vertical, 2)
+                .padding(.vertical, 4)
             }
         }
         .card()

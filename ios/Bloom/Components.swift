@@ -6,7 +6,7 @@ import SwiftUI
 
 struct CardModifier: ViewModifier {
     @Environment(\.theme) private var theme
-    var padding: CGFloat = 16
+    var padding: CGFloat = 18
 
     func body(content: Content) -> some View {
         content
@@ -20,7 +20,7 @@ struct CardModifier: ViewModifier {
 }
 
 extension View {
-    func card(padding: CGFloat = 16) -> some View { modifier(CardModifier(padding: padding)) }
+    func card(padding: CGFloat = 18) -> some View { modifier(CardModifier(padding: padding)) }
 }
 
 // MARK: - Serif titles: "Your *garden*" pattern
@@ -190,12 +190,12 @@ struct StatTile: View {
     var label: String
 
     var body: some View {
-        HStack(spacing: 10) {
+        HStack(spacing: 12) {
             RoundedRectangle(cornerRadius: 12, style: .continuous)
                 .fill(tile)
-                .frame(width: 40, height: 40)
+                .frame(width: 42, height: 42)
                 .overlay(Ic(name: icon, size: 17).foregroundColor(theme.inkStrong))
-            VStack(alignment: .leading, spacing: 1) {
+            VStack(alignment: .leading, spacing: 2) {
                 Text(num).font(.quicksandBold(17)).foregroundColor(theme.inkStrong)
                     .lineLimit(1).minimumScaleFactor(0.7)
                 Text(label).font(.quicksand(11)).foregroundColor(theme.muted)
@@ -203,7 +203,7 @@ struct StatTile: View {
             }
             Spacer(minLength: 0)
         }
-        .padding(10)
+        .padding(13)
         .background(theme.card)
         .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
         .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).stroke(theme.line, lineWidth: 1))
