@@ -262,8 +262,8 @@ input[type="date"].input, input[type="time"].input, input[type="number"].input {
 .day-grid-scroll { max-height: 480px; overflow-y: auto; overscroll-behavior: contain; border: 1.5px solid var(--line); border-radius: 14px; background: var(--card); }
 .day-grid { position: relative; margin: 12px 0 14px; }
 .input.attn { border-color: var(--olive); box-shadow: 0 0 0 3px var(--olive-soft); transition: box-shadow 0.25s; }
-.dg-hour { position: absolute; left: 46px; right: 0; border-top: 1.5px dashed var(--line); }
-.dg-label { position: absolute; top: -7px; left: -44px; width: 38px; text-align: right; font-size: 10.5px; font-weight: 700; color: var(--muted); }
+.dg-hour { position: absolute; left: 0; right: 0; border-top: 1.5px dashed var(--line); }
+.dg-label { position: absolute; top: -8px; left: 0; font-size: 10.5px; font-weight: 700; color: var(--muted); background: var(--card); padding: 0 6px 0 10px; }
 .dg-ev {
   position: absolute; text-align: left; overflow: hidden; cursor: pointer;
   background: color-mix(in srgb, var(--ev-c) 22%, var(--card));
