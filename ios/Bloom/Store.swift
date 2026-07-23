@@ -300,6 +300,124 @@ final class AppStore: ProgressQueries {
         save()
     }
 
+    // MARK: - Events (calendar.js — Google-style scoping on repeating events)
+
+    enum RepeatScope { case one, following, all }
+
+    func eventsOn(_ date: String) -> [BloomEvent] {
+        state.events.filter { $0.occurs(on: date) }
+            .sorted { a, b in
+                let (ai, bi) = (a.important == true ? 1 : 0, b.important == true ? 1 : 0)
+                if ai != bi { return ai > bi }
+                return (a.time ?? "") < (b.time ?? "")
+            }
+    }
+
+    func addEvent(_ ev: BloomEvent) {
+        state.events.append(ev)
+        Sfx.shared.click()
+        save()
+    }
+
+    /// Edit a repeating event for one day only: skip the day, spawn a standalone copy.
+    func applyEventEdit(_ id: String, changes: BloomEvent, scope: RepeatScope, on date: String) {
+        guard let i = state.events.firstIndex(where: { $0.id == id }) else { return }
+        if scope == .one, state.events[i].repeatRule != nil, changes.repeatRule != nil {
+            state.events[i].except = (state.events[i].except ?? []) + [date]
+            var copy = changes
+            copy.id = uid()
+            copy.repeatRule = nil
+            copy.days = nil
+            copy.date = date
+            copy.except = []
+            copy.createdAt = nowISO()
+            state.events.append(copy)
+        } else {
+            var ev = state.events[i]
+            ev.title = changes.title; ev.time = changes.time; ev.timeEnd = changes.timeEnd
+            ev.color = changes.color; ev.important = changes.important
+            ev.repeatRule = changes.repeatRule; ev.days = changes.days
+            state.events[i] = ev
+        }
+        Sfx.shared.click()
+        save()
+    }
+
+    func deleteEvent(_ id: String, scope: RepeatScope, on date: String) {
+        guard let i = state.events.firstIndex(where: { $0.id == id }) else { return }
+        let ev = state.events[i]
+        if ev.repeatRule == nil || scope == .all {
+            state.events.remove(at: i)
+        } else if scope == .one {
+            state.events[i].except = (ev.except ?? []) + [date]
+            toast("Skipped for \(fmtDate(date))", "leaf")
+        } else {   // this and all following days
+            if date <= ev.date {
+                state.events.remove(at: i)
+            } else {
+                state.events[i].until = addDays(date, -1)
+                toast("“\(ev.title)” now ends \(fmtDate(state.events[i].until!))", "leaf")
+            }
+        }
+        save()
+    }
+
+    /// Timeline drag-move: shift start (and end, keeping duration) to `minutes` past midnight.
+    func moveEvent(_ id: String, toMinutes minutes: Int, scope: RepeatScope, on date: String) {
+        guard let i = state.events.firstIndex(where: { $0.id == id }) else { return }
+        let ev = state.events[i]
+        var dur = 60
+        if let t = ev.time, let te = ev.timeEnd {
+            let p = t.split(separator: ":").compactMap { Int($0) }
+            let q = te.split(separator: ":").compactMap { Int($0) }
+            if p.count == 2 && q.count == 2 { dur = max(15, (q[0] * 60 + q[1]) - (p[0] * 60 + p[1])) }
+        }
+        let mm2hhmm = { (m: Int) in "\(pad2((m / 60) % 24)):\(pad2(m % 60))" }
+        if scope == .one, ev.repeatRule != nil {
+            state.events[i].except = (ev.except ?? []) + [date]
+            var copy = ev
+            copy.id = uid()
+            copy.repeatRule = nil
+            copy.days = nil
+            copy.date = date
+            copy.except = []
+            copy.createdAt = nowISO()
+            copy.time = mm2hhmm(minutes)
+            if copy.timeEnd != nil { copy.timeEnd = mm2hhmm(minutes + dur) }
+            state.events.append(copy)
+        } else {
+            state.events[i].time = mm2hhmm(minutes)
+            if state.events[i].timeEnd != nil { state.events[i].timeEnd = mm2hhmm(minutes + dur) }
+        }
+        Sfx.shared.click()
+        save()
+    }
+
+    // MARK: - Notes (notes.js)
+
+    @discardableResult
+    func addNote() -> Note {
+        let n = Note(color: PALETTE[(state.notes.count * 3) % 7])
+        state.notes.append(n)
+        Sfx.shared.pop()
+        save()
+        return n
+    }
+
+    func updateNote(_ id: String, mutate: (inout Note) -> Void, silent: Bool = true) {
+        guard let i = state.notes.firstIndex(where: { $0.id == id }) else { return }
+        var n = state.notes[i]
+        mutate(&n)
+        n.updatedAt = nowISO()
+        state.notes[i] = n
+        save(silent: silent)
+    }
+
+    func deleteNote(_ id: String) {
+        state.notes.removeAll { $0.id == id }
+        save()
+    }
+
     // MARK: - Timer engine (focus.js)
 
     func timerRemaining() -> Double {

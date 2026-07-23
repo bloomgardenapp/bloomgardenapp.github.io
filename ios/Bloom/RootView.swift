@@ -3,12 +3,14 @@
 import SwiftUI
 
 enum Tab: String, CaseIterable {
-    case today, tasks, focus, garden
+    case today, calendar, tasks, notes, focus, garden
 
     var label: String {
         switch self {
         case .today: return "Today"
+        case .calendar: return "Month"
         case .tasks: return "Tasks"
+        case .notes: return "Notes"
         case .focus: return "Focus"
         case .garden: return "Garden"
         }
@@ -17,7 +19,9 @@ enum Tab: String, CaseIterable {
     var icon: String {
         switch self {
         case .today: return "sun"
+        case .calendar: return "calendar"
         case .tasks: return "check-square"
+        case .notes: return "note"
         case .focus: return "hourglass"
         case .garden: return "sprout"
         }
@@ -53,7 +57,9 @@ struct RootView: View {
             Group {
                 switch tab {
                 case .today: TodayView(store: store, openSettings: { showSettings = true }, switchTab: { tab = $0 })
+                case .calendar: CalendarView(store: store)
                 case .tasks: TasksView(store: store)
+                case .notes: NotesView(store: store)
                 case .focus: FocusView(store: store)
                 case .garden: GardenView(store: store, openSettings: { showSettings = true })
                 }
@@ -108,7 +114,9 @@ struct RootView: View {
     // MARK: - Bloom tab bar (the web sidebar, gone horizontal)
 
     private var tabBar: some View {
-        HStack(spacing: 4) {
+        // six tabs need the room: labels normally, icons-only while the timer chip rides along
+        let compact = store.state.timer != nil
+        return HStack(spacing: compact ? 2 : 3) {
             ForEach(Tab.allCases, id: \.self) { t in
                 Button {
                     Sfx.shared.click()
@@ -116,10 +124,13 @@ struct RootView: View {
                 } label: {
                     VStack(spacing: 3) {
                         Ic(name: t.icon, size: 17, weight: tab == t ? .semibold : .medium)
-                        Text(t.label).font(.quicksandBold(10))
+                        if !compact {
+                            Text(t.label).font(.quicksandBold(9.5))
+                                .lineLimit(1).minimumScaleFactor(0.8)
+                        }
                     }
                     .frame(maxWidth: .infinity)
-                    .padding(.vertical, 8)
+                    .padding(.vertical, compact ? 10 : 8)
                     .background(
                         Capsule().fill(tab == t ? theme.oliveSoft : .clear)
                     )

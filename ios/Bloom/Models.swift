@@ -215,7 +215,7 @@ struct WeeklyTask: Codable, Equatable, Identifiable {
     }
 }
 
-// MARK: - Event (rendered read-only in v1; Calendar arrives later)
+// MARK: - Event
 
 struct BloomEvent: Codable, Equatable, Identifiable {
     var id: String
@@ -225,6 +225,7 @@ struct BloomEvent: Codable, Equatable, Identifiable {
     var timeEnd: String? = nil
     var color: String = "#D89B8A"
     var skillId: String? = nil
+    var important: Bool? = nil           // starred events sort first
     var repeatRule: String? = nil        // daily | weekly | monthly | days
     var days: [Int]? = nil               // for repeat == "days" (0=Sun)
     var except: [String]? = nil          // per-day skips
@@ -232,7 +233,15 @@ struct BloomEvent: Codable, Equatable, Identifiable {
     var createdAt: String
     var extra: [String: JSONValue] = [:]
 
-    static let known: Set<String> = ["id", "title", "date", "time", "timeEnd", "color", "skillId", "repeat", "days", "except", "until", "createdAt"]
+    static let known: Set<String> = ["id", "title", "date", "time", "timeEnd", "color", "skillId", "important", "repeat", "days", "except", "until", "createdAt"]
+
+    init(id: String = uid(), title: String, date: String, time: String? = nil, timeEnd: String? = nil,
+         color: String = "#D89B8A", important: Bool? = nil, repeatRule: String? = nil, days: [Int]? = nil,
+         except: [String]? = [], createdAt: String = nowISO()) {
+        self.id = id; self.title = title; self.date = date; self.time = time; self.timeEnd = timeEnd
+        self.color = color; self.important = important; self.repeatRule = repeatRule; self.days = days
+        self.except = except; self.createdAt = createdAt
+    }
 
     init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: AnyKey.self)
@@ -244,6 +253,7 @@ struct BloomEvent: Codable, Equatable, Identifiable {
         color = (try? c.decode(String.self, forKey: AnyKey("color"))) ?? "#D89B8A"
         if color == "#9B7DF2" { color = "#D89B8A" }   // web's violet-era retint
         skillId = try? c.decode(String.self, forKey: AnyKey("skillId"))
+        important = try? c.decode(Bool.self, forKey: AnyKey("important"))
         repeatRule = try? c.decode(String.self, forKey: AnyKey("repeat"))
         days = try? c.decode([Int].self, forKey: AnyKey("days"))
         except = try? c.decode([String].self, forKey: AnyKey("except"))
@@ -261,6 +271,7 @@ struct BloomEvent: Codable, Equatable, Identifiable {
         if let t = timeEnd { try c.encode(t, forKey: AnyKey("timeEnd")) }
         try c.encode(color, forKey: AnyKey("color"))
         try c.encode(skillId, forKey: AnyKey("skillId"))
+        if let imp = important { try c.encode(imp, forKey: AnyKey("important")) }
         if let r = repeatRule { try c.encode(r, forKey: AnyKey("repeat")) }
         if let d = days { try c.encode(d, forKey: AnyKey("days")) }
         if let e = except { try c.encode(e, forKey: AnyKey("except")) }
@@ -299,6 +310,12 @@ struct Note: Codable, Equatable, Identifiable {
     var extra: [String: JSONValue] = [:]
 
     static let known: Set<String> = ["id", "title", "body", "skillId", "color", "pinned", "createdAt", "updatedAt"]
+
+    init(id: String = uid(), title: String = "", body: String = "", skillId: String? = nil,
+         color: String = "#D89B8A", pinned: Bool = false, createdAt: String = nowISO(), updatedAt: String = nowISO()) {
+        self.id = id; self.title = title; self.body = body; self.skillId = skillId
+        self.color = color; self.pinned = pinned; self.createdAt = createdAt; self.updatedAt = updatedAt
+    }
 
     init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: AnyKey.self)

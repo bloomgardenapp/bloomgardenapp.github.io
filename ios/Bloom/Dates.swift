@@ -135,3 +135,45 @@ func nextOccurrence(_ date: String, _ repeatRule: String) -> String {
     default: return date
     }
 }
+
+// MARK: - Time input parsing (util.js parseTimeInput)
+
+/// "7pm" / "7:30 pm" / "19:30" / "930pm" → "HH:MM". nil = blank (all-day); "invalid" throws ParseFail.
+enum TimeParse: Equatable {
+    case blank
+    case time(String)     // "HH:MM"
+    case invalid
+}
+
+func parseTimeInput(_ str: String) -> TimeParse {
+    let t = str.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+    if t.isEmpty { return .blank }
+    // separator optional: "1030" and "930pm" are still times
+    guard let re = try? NSRegularExpression(pattern: "^(\\d{1,2})(?:[:.]?(\\d{2}))?\\s*(am|pm|a|p)?\\.?$"),
+          let m = re.firstMatch(in: t, range: NSRange(t.startIndex..., in: t))
+    else { return .invalid }
+    let ns = t as NSString
+    var h = Int(ns.substring(with: m.range(at: 1))) ?? 0
+    let min = m.range(at: 2).location != NSNotFound ? (Int(ns.substring(with: m.range(at: 2))) ?? 0) : 0
+    let ap = m.range(at: 3).location != NSNotFound ? ns.substring(with: m.range(at: 3)) : nil
+    if min > 59 { return .invalid }
+    if let ap {
+        if h < 1 || h > 12 { return .invalid }
+        if ap.hasPrefix("p") && h != 12 { h += 12 }
+        if ap.hasPrefix("a") && h == 12 { h = 0 }
+    } else if h > 23 {
+        return .invalid
+    }
+    return .time("\(pad2(h)):\(pad2(min))")
+}
+
+/// util.js repeatLabel — 'daily' / 'weekly' / 'monthly' / 'Tue, Thu' / 'weekdays'
+func repeatLabel(repeatRule: String?, days: [Int]?) -> String {
+    guard let repeatRule else { return "" }
+    if repeatRule != "days" { return repeatRule }
+    let d = (days ?? []).sorted()
+    if d.count == 7 { return "daily" }
+    if d.count == 5 && d.allSatisfy({ $0 >= 1 && $0 <= 5 }) { return "weekdays" }
+    if d.count == 2 && d.contains(0) && d.contains(6) { return "weekends" }
+    return d.map { DAY_NAMES_SHORT[$0] }.joined(separator: ", ")
+}

@@ -8,7 +8,7 @@ struct BloomTheme {
     var olive, olive2, oliveSoft, green, greenSoft: Color
     var coral, coralStrong, coralSoft: Color
     var mintSoft, peachSoft, roseSoft, sunSoft, skySoft, track: Color
-    var hsky1, hsky2, hsun, hill1, htree1, hill2, htree2, hill3, htree3, hflower: Color
+    var hsky1, hsky2, hsun, hill1, htree1, hill2, htree2, hill3, htree3, hflower, hcloud: Color
     var isDark: Bool
 
     static let light = BloomTheme(
@@ -26,6 +26,7 @@ struct BloomTheme {
         hill2: Color(hex: "#C7D2A2"), htree2: Color(hex: "#9AAB70"),
         hill3: Color(hex: "#A6B87A"), htree3: Color(hex: "#71864B"),
         hflower: Color(hex: "#FFFDF4"),
+        hcloud: Color(red: 1, green: 253/255, blue: 244/255).opacity(0.85),
         isDark: false
     )
 
@@ -44,6 +45,7 @@ struct BloomTheme {
         hill2: Color(hex: "#333927"), htree2: Color(hex: "#4A5535"),
         hill3: Color(hex: "#3F482B"), htree3: Color(hex: "#5A683D"),
         hflower: Color(hex: "#EDEAD8"),
+        hcloud: Color(red: 233/255, green: 227/255, blue: 205/255).opacity(0.07),
         isDark: true
     )
 }
