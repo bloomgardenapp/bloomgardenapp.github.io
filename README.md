@@ -27,6 +27,10 @@ then open **http://localhost:5190** — or just double-click `Start Bloom.comman
 
 Levels cost `min(60 × level, 900)` XP each — your first hour levels you up fast, mastery takes real time.
 
+## iPhone
+
+There's a native iOS app in [`ios/`](ios/README.md) — SwiftUI, zero dependencies, same garden via the same account. The core loop (Today, Tasks, Focus, Garden) plus a Live Activity timer, a Home Screen widget, real notifications, and the lofi loop in your pocket.
+
 ## Data
 
 Everything lives in `localStorage` in your browser (key `bloom.v1`). Use **⚙️ Settings → Export / Import** for backups. No accounts, no servers, no tracking.

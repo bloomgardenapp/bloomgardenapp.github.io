@@ -15,9 +15,10 @@ final class LiveActivityController {
         let remaining = store.timerRemaining()
         let now = Date()
         let attrs = FocusActivityAttributes(
+            skillId: sk?.id ?? "free-focus",
             skillName: sk?.name ?? (t.phase == "break" ? "little break" : "just focusing"),
             skillColorHex: sk?.color ?? (t.phase == "break" ? "#7FA98F" : "#8FA35E"),
-            species: sk?.species ?? "fern",
+            species: sk != nil ? sk?.species : "fern",
             level: sk.map { store.levelOf($0.id).level } ?? 1,
             mode: t.mode
         )
@@ -43,6 +44,9 @@ final class LiveActivityController {
                 attributes: attrs,
                 content: ActivityContent(state: contentState, staleDate: nil)
             )
+            #if DEBUG
+            print("bloom.liveactivity started:", activity?.id ?? "request failed")
+            #endif
         }
     }
 

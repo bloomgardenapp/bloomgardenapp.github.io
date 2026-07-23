@@ -114,50 +114,62 @@ struct PlantPainter {
         ctx.stroke(p, with: .color(color), style: StrokeStyle(lineWidth: width, lineCap: .round, lineJoin: .round))
     }
 
+    /// v2: plump two-tone leaf, tip lifted, no vein, soft top-lit gradient.
+    /// hue/light are still taken (and still cost PRNG calls) for web parity.
     private func leaf(_ ctx: GraphicsContext, x: Double, y: Double, len: Double, ang: Double, hue: Double, light: Double) {
-        let w = len * 0.58
-        let fill = hsl(hue, 52, light)
-        let vein = hsl(hue, 45, light + 16)
+        _ = (hue, light)
+        let w = len * 0.6
         let rot = CGAffineTransform(translationX: x, y: y)
             .rotated(by: ang * .pi / 180)
             .translatedBy(x: -x, y: -y)
         var body = Path()
         body.move(to: CGPoint(x: x, y: y))
-        body.addCurve(to: CGPoint(x: x + len, y: y),
-                      control1: CGPoint(x: x + len * 0.18, y: y - w * 0.75),
-                      control2: CGPoint(x: x + len * 0.8, y: y - w * 0.48))
+        body.addCurve(to: CGPoint(x: x + len, y: y - len * 0.1),
+                      control1: CGPoint(x: x + len * 0.12, y: y - w * 0.8),
+                      control2: CGPoint(x: x + len * 0.72, y: y - w * 0.62))
         body.addCurve(to: CGPoint(x: x, y: y),
-                      control1: CGPoint(x: x + len * 0.8, y: y + w * 0.48),
-                      control2: CGPoint(x: x + len * 0.18, y: y + w * 0.75))
+                      control1: CGPoint(x: x + len * 0.74, y: y + w * 0.42),
+                      control2: CGPoint(x: x + len * 0.16, y: y + w * 0.5))
         body.closeSubpath()
-        ctx.fill(body.applying(rot), with: .color(fill))
-        var veinP = Path()
-        veinP.move(to: CGPoint(x: x + len * 0.15, y: y))
-        veinP.addLine(to: CGPoint(x: x + len * 0.72, y: y))
-        strokePath(ctx, veinP.applying(rot), vein, 1.6)
+        // linearGradient (0,0)→(0.3,1) in the leaf's own box, rotated with it
+        let start = CGPoint(x: x, y: y - w * 0.8).applying(rot)
+        let end = CGPoint(x: x + len * 0.3, y: y + w * 0.5).applying(rot)
+        ctx.fill(body.applying(rot), with: .linearGradient(
+            Gradient(colors: [Color(hex: "#AED580"), Color(hex: "#5FA054")]),
+            startPoint: start, endPoint: end))
     }
 
+    /// v2: outline-free petals, soft glow halo, radial-lit golden center.
     private func flower(_ ctx: GraphicsContext, x: Double, y: Double, r: Double, color: String) {
         for i in 0..<6 {
             let a = Double(i) / 6 * .pi * 2 + 0.5
             let px = x + cos(a) * r * 0.95, py = y + sin(a) * r * 0.95
             let petal = Path(ellipseIn: CGRect(x: px - r * 0.62, y: py - r * 0.62, width: r * 1.24, height: r * 1.24))
-            ctx.fill(petal, with: .color(Color(hex: color)))
-            ctx.stroke(petal, with: .color(shade(color, -14)), lineWidth: 1)
+            ctx.fill(petal, with: .color(shade(color, 6)))
         }
-        let center = Path(ellipseIn: CGRect(x: x - r * 0.52, y: y - r * 0.52, width: r * 1.04, height: r * 1.04))
-        ctx.fill(center, with: .color(Color(hex: "#FFD45E")))
-        ctx.stroke(center, with: .color(Color(hex: "#E3A93C")), lineWidth: 1.2)
-        let glint = Path(ellipseIn: CGRect(x: x - r * 0.16 - r * 0.14, y: y - r * 0.18 - r * 0.14, width: r * 0.28, height: r * 0.28))
-        ctx.fill(glint, with: .color(Color(hex: "#FFF3CE")))
+        let glow = Path(ellipseIn: CGRect(x: x - r * 0.95, y: y - r * 0.95, width: r * 1.9, height: r * 1.9))
+        ctx.fill(glow, with: .color(shade(color, 30).opacity(0.45)))
+        let cr = r * 0.55
+        let center = Path(ellipseIn: CGRect(x: x - cr, y: y - cr, width: cr * 2, height: cr * 2))
+        ctx.fill(center, with: .radialGradient(
+            Gradient(colors: [Color(hex: "#FFE68F"), Color(hex: "#EFAE3B")]),
+            center: CGPoint(x: x - cr + 0.4 * cr * 2, y: y - cr + 0.35 * cr * 2),
+            startRadius: 0, endRadius: cr * 1.8))
+        let glint = Path(ellipseIn: CGRect(x: x - r * 0.17 - r * 0.16, y: y - r * 0.19 - r * 0.16, width: r * 0.32, height: r * 0.32))
+        ctx.fill(glint, with: .color(Color(red: 1, green: 250 / 255, blue: 225 / 255).opacity(0.9)))
     }
 
+    /// v2: glossy egg bud with a tilted highlight.
     private func bud(_ ctx: GraphicsContext, x: Double, y: Double, r: Double, color: String) {
-        let c = Path(ellipseIn: CGRect(x: x - r, y: y - r, width: r * 2, height: r * 2))
-        ctx.fill(c, with: .color(Color(hex: color)))
-        ctx.stroke(c, with: .color(shade(color, -18)), lineWidth: 1.4)
-        let hl = Path(ellipseIn: CGRect(x: x - r * 0.3 - r * 0.26, y: y - r * 0.32 - r * 0.26, width: r * 0.52, height: r * 0.52))
-        ctx.fill(hl, with: .color(.white.opacity(0.55)))
+        let egg = Path(ellipseIn: CGRect(x: x - r * 0.86, y: y - r, width: r * 1.72, height: r * 2))
+        ctx.fill(egg, with: .radialGradient(
+            Gradient(colors: [shade(color, 36), shade(color, -4)]),
+            center: CGPoint(x: x - r * 0.86 + 0.36 * r * 1.72, y: y - r + 0.3 * r * 2),
+            startRadius: 0, endRadius: r * 1.75))
+        let hx = x - r * 0.3, hy = y - r * 0.38
+        let hl = Path(ellipseIn: CGRect(x: hx - r * 0.3, y: hy - r * 0.22, width: r * 0.6, height: r * 0.44))
+        let rot = CGAffineTransform(translationX: hx, y: hy).rotated(by: -24 * .pi / 180).translatedBy(x: -hx, y: -hy)
+        ctx.fill(hl.applying(rot), with: .color(Color(red: 1, green: 252 / 255, blue: 240 / 255).opacity(0.75)))
     }
 
     private func sparkle(_ ctx: GraphicsContext, x: Double, y: Double, r: Double) {
@@ -168,7 +180,7 @@ struct PlantPainter {
         p.addQuadCurve(to: CGPoint(x: x - r, y: y), control: CGPoint(x: x - r * 0.18, y: y + r * 0.18))
         p.addQuadCurve(to: CGPoint(x: x, y: y - r), control: CGPoint(x: x - r * 0.18, y: y - r * 0.18))
         p.closeSubpath()
-        ctx.fill(p, with: .color(Color(hex: "#FFD45E")))
+        ctx.fill(p, with: .color(Color(hex: "#F2C14E")))
     }
 
     private func sparkles(_ ctx: GraphicsContext, topX: Double, topY: Double, L: Int) {
@@ -184,7 +196,7 @@ struct PlantPainter {
         let h = L == 1 ? 9.0 : min(14 + Double(L) * 5.2, 76)
         let lean = (rnd.next() - 0.5) * 5
         let topX = CX + lean, topY = SOIL - h
-        let stemCol = Color(hex: "#4AA365")
+        let stemCol = Color(hex: "#55A86C")
 
         if L >= 2 {
             var stem = Path()
@@ -215,8 +227,8 @@ struct PlantPainter {
             stem.move(to: CGPoint(x: CX, y: SOIL))
             stem.addLine(to: CGPoint(x: CX, y: SOIL - 9))
             strokePath(ctx, stem, stemCol, 4.5)
-            leaf(ctx, x: CX, y: SOIL - 8, len: 13, ang: -142, hue: 103, light: 44)
-            leaf(ctx, x: CX, y: SOIL - 8, len: 13, ang: -38, hue: 112, light: 40)
+            leaf(ctx, x: CX, y: SOIL - 8, len: 13, ang: -148, hue: 103, light: 44)
+            leaf(ctx, x: CX, y: SOIL - 8, len: 13, ang: -32, hue: 112, light: 40)
         } else {
             let pairs = min(1 + Int(Double(L) / 2.6), 4)
             for i in 0..<pairs {
@@ -224,8 +236,8 @@ struct PlantPainter {
                 let y = SOIL - h * t
                 let x = CX + lean * (1 - t) * 0.6
                 let len = min(12 + Double(L) * 1.15, 24) * (1 - Double(i) * 0.12)
-                leaf(ctx, x: x, y: y, len: len, ang: 180 + 22 + rnd.next() * 10, hue: 100 + rnd.next() * 18, light: 42 + rnd.next() * 6)
-                leaf(ctx, x: x, y: y, len: len, ang: -(22 + rnd.next() * 10), hue: 100 + rnd.next() * 18, light: 42 + rnd.next() * 6)
+                leaf(ctx, x: x, y: y, len: len, ang: 180 + 34 + rnd.next() * 8, hue: 100 + rnd.next() * 18, light: 42 + rnd.next() * 6)
+                leaf(ctx, x: x, y: y, len: len, ang: -(34 + rnd.next() * 8), hue: 100 + rnd.next() * 18, light: 42 + rnd.next() * 6)
             }
         }
         if L >= 3 && L < 7 { bud(ctx, x: topX, y: topY - 2, r: 4.2 + Double(L - 3) * 1.1, color: c) }
@@ -388,8 +400,8 @@ struct PlantPainter {
             let t = 0.62 - Double(i) * 0.22
             let y = SOIL - h * t
             let len = min(13 + Double(L) * 1.2, 25) * (1 - Double(i) * 0.15)
-            leaf(ctx, x: CX, y: y, len: len, ang: 180 + 26, hue: 105, light: 40)
-            leaf(ctx, x: CX, y: y, len: len, ang: -26, hue: 112, light: 43)
+            leaf(ctx, x: CX, y: y, len: len, ang: 180 + 32, hue: 105, light: 40)
+            leaf(ctx, x: CX, y: y, len: len, ang: -32, hue: 112, light: 43)
         }
         if L < 4 {
             bud(ctx, x: topX, y: topY, r: 4 + Double(L), color: "#7FB268")
@@ -432,14 +444,14 @@ struct PlantPainter {
         }
     }
 
+    /// v2 pot: gradient body with a glossy edge stroke, gradient rim, simple face.
     func drawPot(_ ctx: GraphicsContext) {
         let c = spec.colorHex
         let potTop = SOIL + 4
 
-        // soil
-        ctx.fill(Path(ellipseIn: CGRect(x: 60 - 17, y: SOIL + 1 - 4, width: 34, height: 8)), with: .color(Color(hex: "#7A5A40")))
-        ctx.fill(Path(ellipseIn: CGRect(x: 54 - 1.1, y: SOIL + 2 - 1.1, width: 2.2, height: 2.2)), with: .color(Color(hex: "#5E4430")))
-        ctx.fill(Path(ellipseIn: CGRect(x: 66 - 1, y: SOIL + 1 - 1, width: 2, height: 2)), with: .color(Color(hex: "#5E4430")))
+        // soil + a moist glint
+        ctx.fill(Path(ellipseIn: CGRect(x: 60 - 16, y: SOIL + 1 - 3.6, width: 32, height: 7.2)), with: .color(Color(hex: "#6E5138")))
+        ctx.fill(Path(ellipseIn: CGRect(x: 55 - 5, y: SOIL - 1.6, width: 10, height: 3.2)), with: .color(.white.opacity(0.12)))
 
         // body with vertical gradient
         var body = Path()
@@ -451,31 +463,34 @@ struct PlantPainter {
         body.addLine(to: CGPoint(x: 78, y: potTop + 7))
         body.closeSubpath()
         ctx.fill(body, with: .linearGradient(
-            Gradient(colors: [shade(c, 12), shade(c, -16)]),
+            Gradient(colors: [shade(c, 20), shade(c, -14)]),
             startPoint: CGPoint(x: 60, y: potTop + 7),
             endPoint: CGPoint(x: 60, y: potTop + 34)
         ))
 
-        // glaze highlight
-        let hl = Path(ellipseIn: CGRect(x: 51 - 4, y: potTop + 14 - 7, width: 8, height: 14))
-        let hlRot = CGAffineTransform(translationX: 51, y: potTop + 14).rotated(by: -8 * .pi / 180).translatedBy(x: -51, y: -(potTop + 14))
-        ctx.fill(hl.applying(hlRot), with: .color(.white.opacity(0.28)))
+        // glossy edge light
+        var gloss = Path()
+        gloss.move(to: CGPoint(x: 47, y: potTop + 10))
+        gloss.addQuadCurve(to: CGPoint(x: 48.8, y: potTop + 28), control: CGPoint(x: 46.4, y: potTop + 20))
+        strokePath(ctx, gloss, Color(red: 1, green: 253 / 255, blue: 244 / 255).opacity(0.4), 4)
 
-        // rim
-        ctx.fill(Path(roundedRect: CGRect(x: 38, y: potTop - 3, width: 44, height: 11), cornerRadius: 5.5), with: .color(shade(c, -8)))
-        ctx.fill(Path(roundedRect: CGRect(x: 38, y: potTop - 3, width: 44, height: 5), cornerRadius: 2.5), with: .color(shade(c, 18).opacity(0.55)))
+        // rim: gradient band + soft shadow under it
+        ctx.fill(Path(roundedRect: CGRect(x: 38, y: potTop - 3, width: 44, height: 11), cornerRadius: 5.5), with: .linearGradient(
+            Gradient(colors: [shade(c, 30), shade(c, 2)]),
+            startPoint: CGPoint(x: 60, y: potTop - 3),
+            endPoint: CGPoint(x: 60, y: potTop + 8)
+        ))
+        ctx.fill(Path(roundedRect: CGRect(x: 40, y: potTop + 6, width: 40, height: 2.2), cornerRadius: 1.1),
+                 with: .color(Color(red: 60 / 255, green: 40 / 255, blue: 25 / 255).opacity(0.14)))
 
         // face
-        let ink = Color(red: 58 / 255, green: 66 / 255, blue: 44 / 255).opacity(0.66)
-        ctx.fill(Path(ellipseIn: CGRect(x: 53.5 - 2, y: potTop + 18 - 2, width: 4, height: 4)), with: .color(ink))
-        ctx.fill(Path(ellipseIn: CGRect(x: 66.5 - 2, y: potTop + 18 - 2, width: 4, height: 4)), with: .color(ink))
+        let ink = Color(red: 56 / 255, green: 40 / 255, blue: 30 / 255).opacity(0.78)
+        ctx.fill(Path(ellipseIn: CGRect(x: 53.5 - 1.9, y: potTop + 18 - 1.9, width: 3.8, height: 3.8)), with: .color(ink))
+        ctx.fill(Path(ellipseIn: CGRect(x: 66.5 - 1.9, y: potTop + 18 - 1.9, width: 3.8, height: 3.8)), with: .color(ink))
         var smile = Path()
-        smile.move(to: CGPoint(x: 56, y: potTop + 23))
-        smile.addQuadCurve(to: CGPoint(x: 64, y: potTop + 23), control: CGPoint(x: 60, y: potTop + 26.5))
-        strokePath(ctx, smile, ink, 1.8)
-        let blush = Color(red: 217 / 255, green: 146 / 255, blue: 120 / 255).opacity(0.45)
-        ctx.fill(Path(ellipseIn: CGRect(x: 48.5 - 2.4, y: potTop + 21 - 2.4, width: 4.8, height: 4.8)), with: .color(blush))
-        ctx.fill(Path(ellipseIn: CGRect(x: 71.5 - 2.4, y: potTop + 21 - 2.4, width: 4.8, height: 4.8)), with: .color(blush))
+        smile.move(to: CGPoint(x: 56, y: potTop + 22.5))
+        smile.addQuadCurve(to: CGPoint(x: 64, y: potTop + 22.5), control: CGPoint(x: 60, y: potTop + 26))
+        strokePath(ctx, smile, ink, 1.9)
     }
 
     func drawShadow(_ ctx: GraphicsContext) {

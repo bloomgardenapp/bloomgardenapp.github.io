@@ -85,6 +85,10 @@ struct RootView: View {
         .onChange(of: scenePhase) { _, phase in
             if phase == .active {
                 store.checkTimer()   // a session may have finished while suspended
+                if store.state.timer != nil {
+                    // a timer synced from another device (or restored) gets its Live Activity here
+                    LiveActivityController.shared.startOrUpdate(store: store)
+                }
                 if CloudSync.shared.signedIn { Task { await CloudSync.shared.firstSync() } }
             }
         }
@@ -92,6 +96,7 @@ struct RootView: View {
             Sfx.shared.store = store
             CloudSync.shared.start(store: store)
             NotificationPlanner.sync(store: store)
+            MusicEngine.shared.sync(soundOn: store.state.settings.sound, musicOn: store.state.settings.music)
             #if DEBUG
             if UserDefaults.standard.bool(forKey: "bloomZen"), store.state.timer != nil {
                 store.zenPresented = true

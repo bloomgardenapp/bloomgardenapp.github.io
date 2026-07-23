@@ -42,6 +42,7 @@ struct SettingsView: View {
                     Button {
                         store.state.settings.sound.toggle()
                         store.save(silent: true)
+                        MusicEngine.shared.sync(soundOn: store.state.settings.sound, musicOn: store.state.settings.music)
                         Sfx.shared.pop()
                     } label: {
                         Chip(text: store.state.settings.sound ? "sound on" : "sound off",
@@ -49,6 +50,19 @@ struct SettingsView: View {
                              selected: store.state.settings.sound)
                     }
                     .buttonStyle(.plain)
+                    Button {
+                        store.state.settings.music.toggle()
+                        store.save(silent: true)
+                        MusicEngine.shared.sync(soundOn: store.state.settings.sound, musicOn: store.state.settings.music)
+                        Sfx.shared.click()
+                    } label: {
+                        Chip(text: store.state.settings.music ? "music on" : "music off",
+                             icon: store.state.settings.music ? "music" : "music-off",
+                             selected: store.state.settings.music)
+                    }
+                    .buttonStyle(.plain)
+                    .disabled(!store.state.settings.sound)
+                    .opacity(store.state.settings.sound ? 1 : 0.5)
                     Button {
                         store.state.settings.taps.toggle()
                         store.save(silent: true)
