@@ -59,6 +59,7 @@ ios/
     Synth.swift / Music.swift   audio.js: the kalimba toks, four ringers, and the 74bpm lofi loop
     …Views + Theme + Components
   BloomWidgets/            widget extension: garden widget + focus Live Activity
+  tools/icongen/           renders the app icon (day/night/tinted) from PlantArt.swift itself — regen commands in its header
 ```
 
 Testing hooks (`DEBUG` builds only, like the web's `window.__bloom`): launch with `-bloomTab garden`, `-bloomSheet settings`, or `-bloomZen 1`.
