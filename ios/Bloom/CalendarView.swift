@@ -344,6 +344,15 @@ struct DayTimeline: View {
     @State private var armBaseY: CGFloat = 0
     @State private var armWork: DispatchWorkItem? = nil
     @State private var suppressTap = false
+    // manual timeline scrolling — no ScrollView, so nothing competes with the drag
+    @State private var timelineOffset: CGFloat = 0
+    @State private var panStartOffset: CGFloat? = nil
+    @State private var windowFrame: CGRect = .zero
+    @State private var glideSpeed: CGFloat = 0
+    @State private var glideTimer: Timer? = nil
+    @State private var armOffset0: CGFloat = 0
+    private static let windowH: CGFloat = 430
+    private var maxOffset: CGFloat { 24 * Self.hourPx - Self.windowH }
     @Binding var pageScrollLocked: Bool
     @State private var pendingMove: (id: String, minutes: Int)? = nil
     @State private var showMoveScope = false
@@ -402,51 +411,63 @@ struct DayTimeline: View {
                     }
                 }
             }
-            ScrollViewReader { proxy in
-                ScrollView {
-                    ZStack(alignment: .topLeading) {
-                        // hour lines + labels
-                        VStack(spacing: 0) {
-                            ForEach(0..<24, id: \.self) { h in
-                                HStack(alignment: .top, spacing: 6) {
-                                    Text(fmtTime("\(pad2(h)):00", h24: h24).replacingOccurrences(of: ":00", with: ""))
-                                        .font(.quicksandBold(9)).foregroundColor(theme.muted)
-                                        .frame(width: 40, alignment: .trailing)
-                                    VStack { Divider().background(theme.line) }
-                                        .padding(.top, 6)
-                                }
-                                .frame(height: Self.hourPx, alignment: .top)
-                                .id(h)
-                            }
+            ZStack(alignment: .topLeading) {
+                // hour lines + labels
+                VStack(spacing: 0) {
+                    ForEach(0..<24, id: \.self) { h in
+                        HStack(alignment: .top, spacing: 6) {
+                            Text(fmtTime("\(pad2(h)):00", h24: h24).replacingOccurrences(of: ":00", with: ""))
+                                .font(.quicksandBold(9)).foregroundColor(theme.muted)
+                                .frame(width: 40, alignment: .trailing)
+                            VStack { Divider().background(theme.line) }
+                                .padding(.top, 6)
                         }
-                        // event blocks
-                        GeometryReader { geo in
-                            let laneX: CGFloat = 50
-                            let laneW = geo.size.width - laneX - 4
-                            ForEach(blocks) { t in
-                                let dur = t.end - t.start
-                                let isDragging = armedId == t.ev.id
-                                eventBlock(t, h24: h24)
-                                    .frame(width: laneW / CGFloat(t.ncols) - 3,
-                                           height: max(22, CGFloat(dur) / 60 * Self.hourPx - 2))
-                                    .scaleEffect(isDragging ? 1.03 : 1)
-                                    .shadow(color: .black.opacity(isDragging ? 0.25 : 0), radius: 8, y: 3)
-                                    .offset(x: laneX + laneW * CGFloat(t.col) / CGFloat(t.ncols),
-                                            y: CGFloat(t.start) / 60 * Self.hourPx + 1 + (isDragging ? dragOffsetY : 0))
-                                    .zIndex(isDragging ? 2 : 1)
-                            }
-                        }
+                        .frame(height: Self.hourPx, alignment: .top)
                     }
-                    .frame(height: 24 * Self.hourPx)
                 }
-                .frame(height: 430)
-                .scrollDisabled(armedId != nil)   // the held block owns vertical movement
-                .onAppear {
-                    let first = blocks.first.map { $0.start / 60 } ?? 8
-                    proxy.scrollTo(max(0, first), anchor: .top)
+                // event blocks
+                GeometryReader { geo in
+                    let laneX: CGFloat = 50
+                    let laneW = geo.size.width - laneX - 4
+                    ForEach(blocks) { t in
+                        let dur = t.end - t.start
+                        let isDragging = armedId == t.ev.id
+                        eventBlock(t, h24: h24)
+                            .frame(width: laneW / CGFloat(t.ncols) - 3,
+                                   height: max(22, CGFloat(dur) / 60 * Self.hourPx - 2))
+                            .scaleEffect(isDragging ? 1.03 : 1)
+                            .shadow(color: .black.opacity(isDragging ? 0.25 : 0), radius: 8, y: 3)
+                            .offset(x: laneX + laneW * CGFloat(t.col) / CGFloat(t.ncols),
+                                    y: CGFloat(t.start) / 60 * Self.hourPx + 1 + (isDragging ? dragOffsetY : 0))
+                            .zIndex(isDragging ? 2 : 1)
+                    }
                 }
             }
-            Text("Hold a block a moment, then drag it to a new time.")
+            .frame(height: 24 * Self.hourPx, alignment: .top)
+            .offset(y: -timelineOffset)
+            .frame(height: Self.windowH, alignment: .top)
+            .clipped()
+            .contentShape(Rectangle())
+            .background(GeometryReader { g in
+                Color.clear
+                    .onAppear { windowFrame = g.frame(in: .global) }
+                    .onChange(of: g.frame(in: .global)) { _, f in windowFrame = f }
+            })
+            .highPriorityGesture(
+                // the timeline's own pan — beats the page scroll, ignores armed drags
+                DragGesture(minimumDistance: 6, coordinateSpace: .global)
+                    .onChanged { v in
+                        guard armedId == nil else { return }
+                        if panStartOffset == nil { panStartOffset = timelineOffset }
+                        timelineOffset = min(max(panStartOffset! - v.translation.height, 0), maxOffset)
+                    }
+                    .onEnded { _ in panStartOffset = nil }
+            )
+            .onAppear {
+                let first = blocks.first.map { CGFloat($0.start) / 60 * Self.hourPx - 24 } ?? (8 * Self.hourPx)
+                timelineOffset = min(max(first, 0), maxOffset)
+            }
+            Text("Hold a block a moment, then drag — near the edge the hours glide along.")
                 .font(.quicksand(10.5)).foregroundColor(theme.muted)
         }
         .onChange(of: armedId) { _, id in
@@ -501,7 +522,18 @@ struct DayTimeline: View {
                 .onChanged { v in
                     lastTranslationY = v.translation.height
                     if armedId == t.ev.id {
-                        dragOffsetY = v.translation.height - armBaseY
+                        // content-space offset: finger movement + whatever glided beneath it
+                        dragOffsetY = (v.translation.height - armBaseY) + (timelineOffset - armOffset0)
+                        // near the window's edge the hours glide to reach off-screen times
+                        let zone: CGFloat = 52
+                        let bottomEdge = min(windowFrame.maxY, UIScreen.main.bounds.height - 90)
+                        if v.location.y < windowFrame.minY + zone {
+                            glideSpeed = -min(8, (windowFrame.minY + zone - v.location.y) / 6)
+                        } else if v.location.y > bottomEdge - zone {
+                            glideSpeed = min(8, (v.location.y - (bottomEdge - zone)) / 6)
+                        } else {
+                            glideSpeed = 0
+                        }
                         return
                     }
                     guard armedId == nil else { return }
@@ -512,8 +544,10 @@ struct DayTimeline: View {
                             armWork = nil
                             armedId = t.ev.id
                             armBaseY = lastTranslationY
+                            armOffset0 = timelineOffset
                             dragOffsetY = 0
                             suppressTap = true
+                            startGlideTimer()
                         }
                         armWork = work
                         DispatchQueue.main.asyncAfter(deadline: .now() + 0.3, execute: work)
@@ -523,10 +557,11 @@ struct DayTimeline: View {
                     }
                 }
                 .onEnded { v in
+                    _ = v
                     armWork?.cancel()
                     armWork = nil
                     guard armedId == t.ev.id else { disarm(); return }
-                    let delta = Int(((v.translation.height - armBaseY) / Self.hourPx * 60).rounded())
+                    let delta = Int((dragOffsetY / Self.hourPx * 60).rounded())
                     var cand = ((t.start + delta) / 15) * 15
                     cand = max(0, min(cand, 24 * 60 - (t.end - t.start)))
                     disarm()
@@ -541,12 +576,26 @@ struct DayTimeline: View {
         )
     }
 
+    private func startGlideTimer() {
+        glideTimer?.invalidate()
+        glideTimer = Timer.scheduledTimer(withTimeInterval: 1.0 / 60, repeats: true) { _ in
+            guard armedId != nil, glideSpeed != 0 else { return }
+            timelineOffset = min(max(timelineOffset + glideSpeed, 0), maxOffset)
+            // keep the block glued to the resting finger while the hours slide past
+            dragOffsetY = (lastTranslationY - armBaseY) + (timelineOffset - armOffset0)
+        }
+    }
+
     private func disarm() {
+        glideTimer?.invalidate()
+        glideTimer = nil
+        glideSpeed = 0
         armWork?.cancel()
         armWork = nil
         armedId = nil
         dragOffsetY = 0
         armBaseY = 0
+        armOffset0 = 0
     }
 
     private func draggedMinutes(_ t: Timed) -> Int {
