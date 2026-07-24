@@ -132,7 +132,13 @@ struct GardenHillsView: View {
     var body: some View {
         Canvas { ctx, size in
             let W = 1000.0, H = 240.0
-            ctx.scaleBy(x: size.width / W, y: size.height / H)
+            // web: preserveAspectRatio="xMidYMax slice" — cover the box, anchor bottom-center
+            let scale = max(size.width / W, size.height / H)
+            ctx.translateBy(x: (size.width - W * scale) / 2, y: size.height - H * scale)
+            ctx.scaleBy(x: scale, y: scale)
+            // when the box crops the scene, keep the sun/moon inside the visible window
+            let visibleRight = (size.width - (size.width - W * scale) / 2) / scale
+            let sunX = min(872, visibleRight - 90)
             var rnd = PlantRandom(seed: seed)
 
             ctx.fill(Path(CGRect(x: 0, y: 0, width: W, height: H)), with: .linearGradient(
@@ -149,7 +155,7 @@ struct GardenHillsView: View {
                     ctx.fill(Path(ellipseIn: CGRect(x: x - r, y: y - r, width: r * 2, height: r * 2)), with: .color(theme.hsun))
                 }
             }
-            sunOrMoon(ctx, x: 872, y: 46, theme: theme)
+            sunOrMoon(ctx, x: sunX, y: 46, theme: theme)
             cloud(ctx, x: 180, y: 40, sc: 0.9, theme: theme)
             cloud(ctx, x: 560, y: 30, sc: 0.6, theme: theme)
             bird(ctx, x: 320, y: 52, sc: 0.9, theme: theme)
@@ -285,27 +291,33 @@ struct GardenSceneView: View {
     var body: some View {
         let layout = SceneLayout(scenePlants: plants)
         GeometryReader { geo in
-            let s = geo.size.width / 1000
+            // web: preserveAspectRatio="xMidYMax slice" — cover the box, anchor bottom-center
+            let s = max(geo.size.width / 1000, geo.size.height / 260)
+            let offX = (geo.size.width - 1000 * s) / 2
+            let offY = geo.size.height - 260 * s
             ZStack(alignment: .topLeading) {
-                backdrop(layout)
+                backdrop(layout, scale: s, offX: offX, offY: offY)
                 ForEach(layout.plants, id: \.plant.id) { pl in
                     let h = pl.w * 1.25
                     PlantView(spec: pl.plant.spec, level: pl.plant.level)
                         .frame(width: pl.w * s, height: h * s)
-                        .position(x: pl.x * s, y: (pl.y - h / 2) * s)
+                        .position(x: offX + pl.x * s, y: offY + (pl.y - h / 2) * s)
                         .scaleEffect(pl.plant.id == selectedId ? 1.06 : 1, anchor: .bottom)
                         .onTapGesture { onTap(pl.plant.id) }
                 }
             }
         }
-        .aspectRatio(1000 / 260, contentMode: .fit)
         .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
     }
 
-    private func backdrop(_ layout: SceneLayout) -> some View {
+    private func backdrop(_ layout: SceneLayout, scale: Double, offX: Double, offY: Double) -> some View {
         Canvas { ctx, size in
             let W = 1000.0, H = 260.0
-            ctx.scaleBy(x: size.width / W, y: size.height / H)
+            ctx.translateBy(x: offX, y: offY)
+            ctx.scaleBy(x: scale, y: scale)
+            // keep the sun/moon inside the cropped window on narrow screens
+            let visibleRight = (size.width - offX) / scale
+            let sunX = min(872, visibleRight - 90)
 
             ctx.fill(Path(CGRect(x: 0, y: 0, width: W, height: H)), with: .linearGradient(
                 Gradient(colors: [theme.hsky1, theme.hsky2]),
@@ -316,7 +328,7 @@ struct GardenSceneView: View {
                     ctx.fill(Path(ellipseIn: CGRect(x: st.x - st.r, y: st.y - st.r, width: st.r * 2, height: st.r * 2)), with: .color(theme.hsun))
                 }
             }
-            sunOrMoon(ctx, x: 872, y: 46, theme: theme)
+            sunOrMoon(ctx, x: sunX, y: 46, theme: theme)
             cloud(ctx, x: 170, y: 42, sc: 1, theme: theme)
             cloud(ctx, x: 520, y: 30, sc: 0.7, theme: theme)
             cloud(ctx, x: 760, y: 62, sc: 0.55, theme: theme)

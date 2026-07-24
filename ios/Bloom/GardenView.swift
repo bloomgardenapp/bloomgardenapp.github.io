@@ -98,7 +98,7 @@ struct GardenView: View {
         ZStack(alignment: .top) {
             if skills.isEmpty {
                 GardenHillsView()
-                    .aspectRatio(1000 / 240, contentMode: .fit)
+                    .frame(height: 165)
                     .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
             } else {
                 GardenSceneView(
@@ -106,6 +106,7 @@ struct GardenView: View {
                     selectedId: stripSkillId ?? skills.first?.id,
                     onTap: { id in Sfx.shared.click(); stripSkillId = id }
                 )
+                .frame(height: 165)
             }
             VStack(spacing: 2) {
                 Text(total > 0 ? "YOU'VE GROWN \(fmtMin(total).uppercased())" : "YOUR GARDEN AWAITS")
