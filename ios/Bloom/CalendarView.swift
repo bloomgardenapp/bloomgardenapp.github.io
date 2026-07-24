@@ -332,14 +332,18 @@ struct DayTimeline: View {
         var ncols = 1
     }
 
-    /// Live drag, held in GestureState so cancellation can never strand a block:
-    /// the system resets it to nil the instant the gesture ends for any reason.
-    private struct DragInfo: Equatable {
-        var id: String
-        var offset: CGFloat
-    }
-
-    @GestureState private var drag: DragInfo? = nil
+    // Drag-in-scroll the way that actually holds up: one always-listening
+    // simultaneous drag per block. A dwell timer arms it (scroll frozen from that
+    // moment); before arming, quick movements stay ordinary scrolls. The touching
+    // GestureState is the cancellation safety net — it resets even when the
+    // system kills the touch, and disarming rides on that.
+    @GestureState private var touching = false
+    @State private var armedId: String? = nil
+    @State private var dragOffsetY: CGFloat = 0
+    @State private var lastTranslationY: CGFloat = 0
+    @State private var armBaseY: CGFloat = 0
+    @State private var armWork: DispatchWorkItem? = nil
+    @State private var suppressTap = false
     @Binding var pageScrollLocked: Bool
     @State private var pendingMove: (id: String, minutes: Int)? = nil
     @State private var showMoveScope = false
@@ -421,14 +425,14 @@ struct DayTimeline: View {
                             let laneW = geo.size.width - laneX - 4
                             ForEach(blocks) { t in
                                 let dur = t.end - t.start
-                                let isDragging = drag?.id == t.ev.id
+                                let isDragging = armedId == t.ev.id
                                 eventBlock(t, h24: h24)
                                     .frame(width: laneW / CGFloat(t.ncols) - 3,
                                            height: max(22, CGFloat(dur) / 60 * Self.hourPx - 2))
                                     .scaleEffect(isDragging ? 1.03 : 1)
                                     .shadow(color: .black.opacity(isDragging ? 0.25 : 0), radius: 8, y: 3)
                                     .offset(x: laneX + laneW * CGFloat(t.col) / CGFloat(t.ncols),
-                                            y: CGFloat(t.start) / 60 * Self.hourPx + 1 + (isDragging ? (drag?.offset ?? 0) : 0))
+                                            y: CGFloat(t.start) / 60 * Self.hourPx + 1 + (isDragging ? dragOffsetY : 0))
                                     .zIndex(isDragging ? 2 : 1)
                             }
                         }
@@ -436,7 +440,7 @@ struct DayTimeline: View {
                     .frame(height: 24 * Self.hourPx)
                 }
                 .frame(height: 430)
-                .scrollDisabled(drag != nil)   // the held block owns vertical movement
+                .scrollDisabled(armedId != nil)   // the held block owns vertical movement
                 .onAppear {
                     let first = blocks.first.map { $0.start / 60 } ?? 8
                     proxy.scrollTo(max(0, first), anchor: .top)
@@ -445,11 +449,12 @@ struct DayTimeline: View {
             Text("Hold a block a moment, then drag it to a new time.")
                 .font(.quicksand(10.5)).foregroundColor(theme.muted)
         }
-        .onChange(of: drag?.id) { _, id in
+        .onChange(of: armedId) { _, id in
+            pageScrollLocked = id != nil     // freeze the page scroll under the drag
             if id != nil { Haptics.tap() }   // the moment the block arms
         }
-        .onChange(of: drag != nil) { _, active in
-            pageScrollLocked = active        // freeze the page scroll under the drag
+        .onChange(of: touching) { _, isDown in
+            if !isDown { disarm() }          // fires even on system-cancelled touches
         }
         .confirmationDialog(moveTitle, isPresented: $showMoveScope, titleVisibility: .visible) {
             Button("Just this day") { commitMove(scope: .one) }
@@ -474,7 +479,7 @@ struct DayTimeline: View {
         return VStack(alignment: .leading, spacing: 1) {
             Text((t.ev.important == true ? "★ " : "") + t.ev.title)
                 .font(.quicksandBold(10.5)).lineLimit(1)
-            let shownStart = drag?.id == t.ev.id ? draggedMinutes(t) : t.start
+            let shownStart = armedId == t.ev.id ? draggedMinutes(t) : t.start
             let label = fmtTime("\(pad2(shownStart / 60)):\(pad2(shownStart % 60))", h24: h24)
                 + (t.ev.timeEnd != nil ? " – \(fmtTime("\(pad2((shownStart + t.end - t.start) / 60 % 24)):\(pad2((shownStart + t.end - t.start) % 60))", h24: h24))" : "")
             Text(label).font(.quicksand(9)).opacity(0.85)
@@ -486,27 +491,45 @@ struct DayTimeline: View {
         .overlay(RoundedRectangle(cornerRadius: 7, style: .continuous).stroke(c, lineWidth: 1.2))
         .foregroundColor(theme.inkStrong)
         .onTapGesture {
+            guard !suppressTap else { suppressTap = false; return }
             editingId = t.ev.id
             Sfx.shared.click()
         }
-        .gesture(
-            LongPressGesture(minimumDuration: 0.3)
-                .sequenced(before: DragGesture(minimumDistance: 0))
-                .updating($drag) { value, state, _ in
-                    switch value {
-                    case .second(true, let d?):
-                        state = DragInfo(id: t.ev.id, offset: d.translation.height)
-                    case .second(true, nil):
-                        state = DragInfo(id: t.ev.id, offset: 0)   // armed, waiting for movement
-                    default:
-                        break
+        .simultaneousGesture(
+            DragGesture(minimumDistance: 0, coordinateSpace: .global)
+                .updating($touching) { _, state, _ in state = true }
+                .onChanged { v in
+                    lastTranslationY = v.translation.height
+                    if armedId == t.ev.id {
+                        dragOffsetY = v.translation.height - armBaseY
+                        return
+                    }
+                    guard armedId == nil else { return }
+                    let moved = abs(v.translation.height) > 12 || abs(v.translation.width) > 12
+                    if armWork == nil && !moved {
+                        // finger just landed — arm after a still dwell
+                        let work = DispatchWorkItem {
+                            armWork = nil
+                            armedId = t.ev.id
+                            armBaseY = lastTranslationY
+                            dragOffsetY = 0
+                            suppressTap = true
+                        }
+                        armWork = work
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3, execute: work)
+                    } else if moved, let work = armWork {
+                        work.cancel()   // it's a scroll — never arm mid-flight
+                        armWork = nil
                     }
                 }
-                .onEnded { value in
-                    guard case .second(true, let d?) = value else { return }
-                    let delta = Int((d.translation.height / Self.hourPx * 60).rounded())
+                .onEnded { v in
+                    armWork?.cancel()
+                    armWork = nil
+                    guard armedId == t.ev.id else { disarm(); return }
+                    let delta = Int(((v.translation.height - armBaseY) / Self.hourPx * 60).rounded())
                     var cand = ((t.start + delta) / 15) * 15
                     cand = max(0, min(cand, 24 * 60 - (t.end - t.start)))
+                    disarm()
                     guard cand != t.start else { return }
                     if t.ev.repeatRule != nil {
                         pendingMove = (t.ev.id, cand)
@@ -518,8 +541,16 @@ struct DayTimeline: View {
         )
     }
 
+    private func disarm() {
+        armWork?.cancel()
+        armWork = nil
+        armedId = nil
+        dragOffsetY = 0
+        armBaseY = 0
+    }
+
     private func draggedMinutes(_ t: Timed) -> Int {
-        let delta = Int(((drag?.offset ?? 0) / Self.hourPx * 60).rounded())
+        let delta = Int((dragOffsetY / Self.hourPx * 60).rounded())
         var cand = ((t.start + delta) / 15) * 15
         cand = max(0, min(cand, 24 * 60 - (t.end - t.start)))
         return cand
