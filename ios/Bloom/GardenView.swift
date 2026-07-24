@@ -95,18 +95,27 @@ struct GardenView: View {
     // MARK: banner
 
     private func banner(skills: [Skill], total: Int) -> some View {
-        ZStack(alignment: .top) {
+        // the meadow is wider than the phone: show the whole 1000-unit scene at
+        // banner height and let her wander sideways; opens centered on the garden
+        let bannerH = 165.0
+        let sceneW = bannerH / 260.0 * 1000.0
+        return ZStack(alignment: .top) {
             if skills.isEmpty {
                 GardenHillsView()
-                    .frame(height: 165)
+                    .frame(height: bannerH)
                     .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
             } else {
-                GardenSceneView(
-                    plants: skills.map { ScenePlant(spec: PlantSpec(id: $0.id, colorHex: $0.color, species: $0.species), level: store.levelOf($0.id).level, name: $0.name) },
-                    selectedId: stripSkillId ?? skills.first?.id,
-                    onTap: { id in Sfx.shared.click(); stripSkillId = id }
-                )
-                .frame(height: 165)
+                ScrollView(.horizontal, showsIndicators: false) {
+                    GardenSceneView(
+                        plants: skills.map { ScenePlant(spec: PlantSpec(id: $0.id, colorHex: $0.color, species: $0.species), level: store.levelOf($0.id).level, name: $0.name) },
+                        selectedId: stripSkillId ?? skills.first?.id,
+                        onTap: { id in Sfx.shared.click(); stripSkillId = id }
+                    )
+                    .frame(width: sceneW, height: bannerH)
+                }
+                .defaultScrollAnchor(.center)
+                .frame(height: bannerH)
+                .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
             }
             VStack(spacing: 2) {
                 Text(total > 0 ? "YOU'VE GROWN \(fmtMin(total).uppercased())" : "YOUR GARDEN AWAITS")

@@ -274,11 +274,14 @@ struct EventListRow: View {
             if event.important == true {
                 Text("★").font(.system(size: 11)).foregroundColor(Color(hex: "#E0B54F"))
             }
-            Text(event.title).font(.quicksand(13.5)).foregroundColor(theme.ink).lineLimit(1)
+            Text(event.title).font(.quicksand(13.5)).foregroundColor(theme.ink)
+                .lineLimit(1)
+                .layoutPriority(-1)   // the title gives way; chips and times stay whole
             if event.repeatRule != nil {
                 Chip(text: repeatLabel(repeatRule: event.repeatRule, days: event.days), icon: "repeat", style: .lilac)
+                    .fixedSize()
             }
-            Spacer()
+            Spacer(minLength: 4)
             Button { editingId = event.id } label: {
                 Ic(name: "pencil", size: 13).foregroundColor(theme.muted)
             }

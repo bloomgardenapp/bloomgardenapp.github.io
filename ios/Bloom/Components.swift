@@ -75,7 +75,7 @@ struct Chip: View {
     var body: some View {
         HStack(spacing: 4) {
             if let icon { Ic(name: icon, size: 10) }
-            Text(text).font(.quicksandBold(12))
+            Text(text).font(.quicksandBold(12)).lineLimit(1)
         }
         .padding(.horizontal, 10)
         .padding(.vertical, 4)
