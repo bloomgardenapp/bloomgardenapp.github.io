@@ -13,6 +13,7 @@ struct CalendarView: View {
     @State private var editingId: String? = nil
     @State private var dayMode = "list"          // list | plan
     @State private var quickTaskText = ""
+    @State private var pageScrollLocked = false
 
     init(store: AppStore) {
         self.store = store
@@ -31,12 +32,14 @@ struct CalendarView: View {
                            sub: "Your events, tasks and focus — the whole month at a glance.") { EmptyView() }
                 monthGrid.card(padding: 12)
                 DayPanel(store: store, selected: $selected, editingId: $editingId,
-                         dayMode: $dayMode, quickTaskText: $quickTaskText)
+                         dayMode: $dayMode, quickTaskText: $quickTaskText,
+                         pageScrollLocked: $pageScrollLocked)
             }
             .padding(.horizontal, 22)
             .padding(.top, 14)
             .padding(.bottom, 28)
         }
+        .scrollDisabled(pageScrollLocked)   // a held planner block owns the touch
         .scrollDismissesKeyboard(.interactively)
     }
 
@@ -168,6 +171,7 @@ struct DayPanel: View {
     @Binding var editingId: String?
     @Binding var dayMode: String
     @Binding var quickTaskText: String
+    @Binding var pageScrollLocked: Bool
 
     var body: some View {
         let evs = store.eventsOn(selected)
@@ -195,7 +199,7 @@ struct DayPanel: View {
             }
 
             if dayMode == "plan" {
-                DayTimeline(store: store, selected: $selected, editingId: $editingId, events: evs)
+                DayTimeline(store: store, selected: $selected, editingId: $editingId, events: evs, pageScrollLocked: $pageScrollLocked)
             } else if evs.isEmpty {
                 Text("Nothing scheduled.").font(.quicksand(12.5)).foregroundColor(theme.muted)
             } else {
@@ -328,8 +332,15 @@ struct DayTimeline: View {
         var ncols = 1
     }
 
-    @State private var dragging: String? = nil
-    @State private var dragOffset: CGFloat = 0
+    /// Live drag, held in GestureState so cancellation can never strand a block:
+    /// the system resets it to nil the instant the gesture ends for any reason.
+    private struct DragInfo: Equatable {
+        var id: String
+        var offset: CGFloat
+    }
+
+    @GestureState private var drag: DragInfo? = nil
+    @Binding var pageScrollLocked: Bool
     @State private var pendingMove: (id: String, minutes: Int)? = nil
     @State private var showMoveScope = false
 
@@ -410,12 +421,14 @@ struct DayTimeline: View {
                             let laneW = geo.size.width - laneX - 4
                             ForEach(blocks) { t in
                                 let dur = t.end - t.start
-                                let isDragging = dragging == t.ev.id
+                                let isDragging = drag?.id == t.ev.id
                                 eventBlock(t, h24: h24)
                                     .frame(width: laneW / CGFloat(t.ncols) - 3,
                                            height: max(22, CGFloat(dur) / 60 * Self.hourPx - 2))
+                                    .scaleEffect(isDragging ? 1.03 : 1)
+                                    .shadow(color: .black.opacity(isDragging ? 0.25 : 0), radius: 8, y: 3)
                                     .offset(x: laneX + laneW * CGFloat(t.col) / CGFloat(t.ncols),
-                                            y: CGFloat(t.start) / 60 * Self.hourPx + 1 + (isDragging ? dragOffset : 0))
+                                            y: CGFloat(t.start) / 60 * Self.hourPx + 1 + (isDragging ? (drag?.offset ?? 0) : 0))
                                     .zIndex(isDragging ? 2 : 1)
                             }
                         }
@@ -423,13 +436,20 @@ struct DayTimeline: View {
                     .frame(height: 24 * Self.hourPx)
                 }
                 .frame(height: 430)
+                .scrollDisabled(drag != nil)   // the held block owns vertical movement
                 .onAppear {
                     let first = blocks.first.map { $0.start / 60 } ?? 8
                     proxy.scrollTo(max(0, first), anchor: .top)
                 }
             }
-            Text("Hold a block to drag it to a new time.")
+            Text("Hold a block a moment, then drag it to a new time.")
                 .font(.quicksand(10.5)).foregroundColor(theme.muted)
+        }
+        .onChange(of: drag?.id) { _, id in
+            if id != nil { Haptics.tap() }   // the moment the block arms
+        }
+        .onChange(of: drag != nil) { _, active in
+            pageScrollLocked = active        // freeze the page scroll under the drag
         }
         .confirmationDialog(moveTitle, isPresented: $showMoveScope, titleVisibility: .visible) {
             Button("Just this day") { commitMove(scope: .one) }
@@ -454,7 +474,7 @@ struct DayTimeline: View {
         return VStack(alignment: .leading, spacing: 1) {
             Text((t.ev.important == true ? "★ " : "") + t.ev.title)
                 .font(.quicksandBold(10.5)).lineLimit(1)
-            let shownStart = dragging == t.ev.id ? draggedMinutes(t) : t.start
+            let shownStart = drag?.id == t.ev.id ? draggedMinutes(t) : t.start
             let label = fmtTime("\(pad2(shownStart / 60)):\(pad2(shownStart % 60))", h24: h24)
                 + (t.ev.timeEnd != nil ? " – \(fmtTime("\(pad2((shownStart + t.end - t.start) / 60 % 24)):\(pad2((shownStart + t.end - t.start) % 60))", h24: h24))" : "")
             Text(label).font(.quicksand(9)).opacity(0.85)
@@ -470,22 +490,23 @@ struct DayTimeline: View {
             Sfx.shared.click()
         }
         .gesture(
-            LongPressGesture(minimumDuration: 0.25)
-                .sequenced(before: DragGesture())
-                .onChanged { value in
-                    if case .second(true, let drag?) = value {
-                        if dragging == nil { Haptics.tap() }
-                        dragging = t.ev.id
-                        dragOffset = drag.translation.height
+            LongPressGesture(minimumDuration: 0.3)
+                .sequenced(before: DragGesture(minimumDistance: 0))
+                .updating($drag) { value, state, _ in
+                    switch value {
+                    case .second(true, let d?):
+                        state = DragInfo(id: t.ev.id, offset: d.translation.height)
+                    case .second(true, nil):
+                        state = DragInfo(id: t.ev.id, offset: 0)   // armed, waiting for movement
+                    default:
+                        break
                     }
                 }
                 .onEnded { value in
-                    guard case .second(true, let drag?) = value else { dragging = nil; dragOffset = 0; return }
-                    let delta = Int((drag.translation.height / Self.hourPx * 60).rounded())
+                    guard case .second(true, let d?) = value else { return }
+                    let delta = Int((d.translation.height / Self.hourPx * 60).rounded())
                     var cand = ((t.start + delta) / 15) * 15
                     cand = max(0, min(cand, 24 * 60 - (t.end - t.start)))
-                    dragging = nil
-                    dragOffset = 0
                     guard cand != t.start else { return }
                     if t.ev.repeatRule != nil {
                         pendingMove = (t.ev.id, cand)
@@ -498,7 +519,7 @@ struct DayTimeline: View {
     }
 
     private func draggedMinutes(_ t: Timed) -> Int {
-        let delta = Int((dragOffset / Self.hourPx * 60).rounded())
+        let delta = Int(((drag?.offset ?? 0) / Self.hourPx * 60).rounded())
         var cand = ((t.start + delta) / 15) * 15
         cand = max(0, min(cand, 24 * 60 - (t.end - t.start)))
         return cand
