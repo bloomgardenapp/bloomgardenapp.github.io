@@ -467,7 +467,7 @@ struct DayTimeline: View {
                 let first = blocks.first.map { CGFloat($0.start) / 60 * Self.hourPx - 24 } ?? (8 * Self.hourPx)
                 timelineOffset = min(max(first, 0), maxOffset)
             }
-            Text("Hold a block a moment, then drag — near the edge the hours glide along.")
+            Text("Hold a block, then drag to move it.")
                 .font(.quicksand(10.5)).foregroundColor(theme.muted)
         }
         .onChange(of: armedId) { _, id in
