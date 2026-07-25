@@ -174,12 +174,12 @@ struct NoteEditor: View {
                 // meta row: plant link, colors, pin, delete
                 HStack(spacing: 8) {
                     Menu {
-                        Button("no plant") { store.updateNote(noteId) { $0.skillId = nil } }
+                        Button("No plant") { store.updateNote(noteId) { $0.skillId = nil } }
                         ForEach(store.state.skills) { sk in
                             Button(sk.name) { store.updateNote(noteId) { $0.skillId = sk.id } }
                         }
                     } label: {
-                        Chip(text: store.skill(n?.skillId)?.name ?? "link a plant?",
+                        Chip(text: store.skill(n?.skillId)?.name ?? "Link a plant",
                              icon: store.skill(n?.skillId)?.icon ?? "pot",
                              selected: n?.skillId != nil)
                     }

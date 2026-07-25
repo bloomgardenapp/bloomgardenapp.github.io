@@ -146,35 +146,22 @@ struct BarChart: View {
     var values: [Int]
     var labels: [String]
     var height: CGFloat = 72
-    /// Always-visible mini time labels riding on the bars ("2h15"). Zeros stay blank.
-    var valueLabels: [String]? = nil
     /// When set, tapping a column pops a "\(title) · \(fmtMin)" bubble — the web's hover tooltip.
     var peekTitles: [String]? = nil
     @State private var peek: Int? = nil
 
     var body: some View {
-        // reserve headroom for the riding labels so a full bar + label still fits
-        let barSpace = height - (valueLabels == nil ? 0 : 14)
         let maxV = max(values.max() ?? 0, 30)
         ZStack(alignment: .top) {
             HStack(alignment: .bottom, spacing: values.count > 12 ? 3 : 8) {
                 ForEach(values.indices, id: \.self) { i in
                     VStack(spacing: 4) {
-                        VStack(spacing: 2) {
-                            if let vl = valueLabels, i < vl.count, !vl[i].isEmpty {
-                                Text(vl[i])
-                                    .font(.quicksandBold(9))
-                                    .foregroundColor(theme.muted)
-                                    .lineLimit(1)
-                                    .fixedSize()
-                            }
-                            RoundedRectangle(cornerRadius: values.count > 12 ? 2.5 : 6, style: .continuous)
-                                .fill(values[i] > 0
-                                      ? AnyShapeStyle(LinearGradient(colors: [Color(hex: "#7C8B4F"), Color(hex: "#A3BC6E")], startPoint: .bottom, endPoint: .top))
-                                      : AnyShapeStyle(theme.track))
-                                .frame(height: max(values[i] > 0 ? 5 : 2.5, CGFloat(values[i]) / CGFloat(maxV) * barSpace))
-                        }
-                        .frame(maxHeight: height, alignment: .bottom)
+                        RoundedRectangle(cornerRadius: values.count > 12 ? 2.5 : 6, style: .continuous)
+                            .fill(values[i] > 0
+                                  ? AnyShapeStyle(LinearGradient(colors: [Color(hex: "#7C8B4F"), Color(hex: "#A3BC6E")], startPoint: .bottom, endPoint: .top))
+                                  : AnyShapeStyle(theme.track))
+                            .frame(height: max(values[i] > 0 ? 5 : 2.5, CGFloat(values[i]) / CGFloat(maxV) * height))
+                            .frame(maxHeight: height, alignment: .bottom)
                         if !labels.isEmpty {
                             Text(i < labels.count ? labels[i] : "")
                                 .font(.quicksandBold(9))

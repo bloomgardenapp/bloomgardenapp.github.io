@@ -48,17 +48,15 @@ struct TaskRow: View {
 
     @ViewBuilder private var chipsRow: some View {
         let sk = store.skill(task.skillId)
-        let hasChips = (showDue && task.due != nil && !task.done) || task.repeatRule != nil || sk != nil || (task.priority > 0 && !task.done)
+        let hasChips = (showDue && task.due != nil && !task.done) || task.repeatRule != nil || sk != nil
         if hasChips {
             HStack(spacing: 5) {
                 if showDue, let due = task.due, !task.done {
                     let diff = dayDiff(todayYmd(), due)
                     Chip(text: relDue(due), icon: "calendar", style: diff < 0 ? .overdue : diff == 0 ? .dueToday : .plain)
                 }
-                if let r = task.repeatRule { Chip(text: r, icon: "repeat", style: .lilac) }
+                if let r = task.repeatRule { Chip(text: r.capitalized, icon: "repeat", style: .lilac) }
                 if let sk { Chip(text: sk.name, icon: sk.icon) }
-                if task.priority == 2 && !task.done { Chip(text: "‼ high", style: .coral) }
-                if task.priority == 1 && !task.done { Chip(text: "! medium", style: .sun) }
             }
         }
     }
@@ -71,13 +69,10 @@ struct TasksView: View {
     @State private var draftTitle = ""
     @State private var draftDue: Date? = nil
     @State private var draftSkillId: String? = nil
-    @State private var draftPriority = 0
     @State private var draftRepeat: String? = nil
     @State private var filterSkill: String? = nil
     @State private var showDatePicker = false
     @State private var showSkillEditor = false
-
-    private let prioLabels = ["priority", "! medium", "‼ high"]
 
     var body: some View {
         let today = todayYmd()
@@ -197,40 +192,30 @@ struct TasksView: View {
                 HStack(spacing: 6) {
                     // due date
                     Button { showDatePicker = true } label: {
-                        Chip(text: draftDue.map { fmtDateShort(ymd($0)) } ?? "due?", icon: "calendar", selected: draftDue != nil)
+                        Chip(text: draftDue.map { fmtDateShort(ymd($0)) } ?? "Due date", icon: "calendar", selected: draftDue != nil)
                     }
                     .buttonStyle(.plain)
                     // repeat
                     Menu {
-                        Button("no repeat") { draftRepeat = nil }
-                        Button("repeats daily") { draftRepeat = "daily" }
-                        Button("repeats weekly") { draftRepeat = "weekly" }
-                        Button("repeats monthly") { draftRepeat = "monthly" }
+                        Button("No repeat") { draftRepeat = nil }
+                        Button("Daily") { draftRepeat = "daily" }
+                        Button("Weekly") { draftRepeat = "weekly" }
+                        Button("Monthly") { draftRepeat = "monthly" }
                     } label: {
-                        Chip(text: draftRepeat ?? "repeat?", icon: "repeat", selected: draftRepeat != nil)
+                        Chip(text: draftRepeat?.capitalized ?? "Repeat", icon: "repeat", selected: draftRepeat != nil)
                     }
                     // plant link
                     Menu {
-                        Button("no plant") { draftSkillId = nil }
+                        Button("No plant") { draftSkillId = nil }
                         ForEach(store.state.skills) { sk in
                             Button(sk.name) { draftSkillId = sk.id }
                         }
                         Button("＋ Plant new skill…") { showSkillEditor = true }
                     } label: {
-                        Chip(text: store.skill(draftSkillId)?.name ?? "link a plant?",
+                        Chip(text: store.skill(draftSkillId)?.name ?? "Link a plant",
                              icon: store.skill(draftSkillId)?.icon ?? "pot",
                              selected: draftSkillId != nil)
                     }
-                    // priority
-                    Button {
-                        draftPriority = (draftPriority + 1) % 3
-                        Sfx.shared.click()
-                    } label: {
-                        Chip(text: prioLabels[draftPriority],
-                             style: draftPriority == 2 ? .coral : draftPriority == 1 ? .sun : .plain,
-                             selected: false)
-                    }
-                    .buttonStyle(.plain)
                 }
             }
             Button(action: submit) {
@@ -264,7 +249,7 @@ struct TasksView: View {
         let title = draftTitle.trimmingCharacters(in: .whitespaces)
         guard !title.isEmpty else { return }
         store.addTask(title: title, due: draftDue.map { ymd($0) }, skillId: draftSkillId,
-                      priority: draftPriority, repeatRule: draftRepeat)
-        draftTitle = ""; draftDue = nil; draftSkillId = nil; draftPriority = 0; draftRepeat = nil
+                      priority: 0, repeatRule: draftRepeat)
+        draftTitle = ""; draftDue = nil; draftSkillId = nil; draftRepeat = nil
     }
 }

@@ -63,14 +63,6 @@ func fmtMin(_ min: Int) -> String {
     return h > 0 ? (m > 0 ? "\(h)h \(m)m" : "\(h)h") : "\(m)m"
 }
 
-/// "45m", "2h", "2h15" — tight enough to ride on top of a chart bar.
-func compactMin(_ min: Int) -> String {
-    guard min > 0 else { return "" }
-    let h = min / 60, m = min % 60
-    if h == 0 { return "\(m)m" }
-    return m > 0 ? "\(h)h\(String(format: "%02d", m))" : "\(h)h"
-}
-
 func fmtClock(_ sec: Double) -> String {
     let s = max(0, Int(sec.rounded(.up)))
     let h = s / 3600, m = (s % 3600) / 60, ss = s % 60

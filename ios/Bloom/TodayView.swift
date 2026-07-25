@@ -88,7 +88,6 @@ struct TodayView: View {
                         .minimumScaleFactor(0.55)
                     Ic(name: gIcon, size: 20).foregroundColor(theme.olive)
                 }
-                .onTapGesture(perform: openSettings)
                 Text(fmtLongDate(todayYmd())).font(.quicksand(13)).foregroundColor(theme.muted)
                 let (quote, by) = dailyQuote
                 (Text("“\(quote)”").font(.displayItalic(12.5))
@@ -216,12 +215,10 @@ struct TodayView: View {
         let today = todayYmd()
         var values: [Int] = []
         var labels: [String] = []
-        var valueLabels: [String]? = nil
         var peekTitles: [String] = []
         if chartRange == "week" {
             values = store.lastNDays(7)
             labels = dayLabels7()
-            valueLabels = values.map(compactMin)
             peekTitles = (0..<7).reversed().map { i in
                 i == 0 ? "Today" : fmtDate(addDays(today, -i))
             }
@@ -249,8 +246,6 @@ struct TodayView: View {
                 if let i = byMonth.firstIndex(where: { $0.0 == key }) { byMonth[i].1 += sess.minutes }
             }
             values = byMonth.map(\.1)
-            // months are long — round the riding label to hours, exact time lives in the tap bubble
-            valueLabels = values.map { $0 >= 60 ? "\(Int((Double($0) / 60).rounded()))h" : compactMin($0) }
         }
         let total = values.reduce(0, +)
 
@@ -265,7 +260,7 @@ struct TodayView: View {
                     .buttonStyle(.plain)
                 }
             }
-            BarChart(values: values, labels: labels, valueLabels: valueLabels, peekTitles: peekTitles)
+            BarChart(values: values, labels: labels, peekTitles: peekTitles)
             Text(total > 0 ? "\(fmtMin(total)) focused this \(chartRange)" : "nothing this \(chartRange) yet — the bars are waiting")
                 .font(.quicksand(12)).foregroundColor(theme.muted)
         }
