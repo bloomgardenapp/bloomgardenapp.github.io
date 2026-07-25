@@ -146,30 +146,80 @@ struct BarChart: View {
     var values: [Int]
     var labels: [String]
     var height: CGFloat = 72
+    /// Always-visible mini time labels riding on the bars ("2h15"). Zeros stay blank.
+    var valueLabels: [String]? = nil
+    /// When set, tapping a column pops a "\(title) · \(fmtMin)" bubble — the web's hover tooltip.
+    var peekTitles: [String]? = nil
+    @State private var peek: Int? = nil
 
     var body: some View {
+        // reserve headroom for the riding labels so a full bar + label still fits
+        let barSpace = height - (valueLabels == nil ? 0 : 14)
         let maxV = max(values.max() ?? 0, 30)
-        HStack(alignment: .bottom, spacing: values.count > 12 ? 3 : 8) {
-            ForEach(values.indices, id: \.self) { i in
-                VStack(spacing: 4) {
-                    RoundedRectangle(cornerRadius: values.count > 12 ? 2.5 : 6, style: .continuous)
-                        .fill(values[i] > 0
-                              ? AnyShapeStyle(LinearGradient(colors: [Color(hex: "#7C8B4F"), Color(hex: "#A3BC6E")], startPoint: .bottom, endPoint: .top))
-                              : AnyShapeStyle(theme.track))
-                        .frame(height: max(values[i] > 0 ? 5 : 2.5, CGFloat(values[i]) / CGFloat(maxV) * height))
+        ZStack(alignment: .top) {
+            HStack(alignment: .bottom, spacing: values.count > 12 ? 3 : 8) {
+                ForEach(values.indices, id: \.self) { i in
+                    VStack(spacing: 4) {
+                        VStack(spacing: 2) {
+                            if let vl = valueLabels, i < vl.count, !vl[i].isEmpty {
+                                Text(vl[i])
+                                    .font(.quicksandBold(9))
+                                    .foregroundColor(theme.muted)
+                                    .lineLimit(1)
+                                    .fixedSize()
+                            }
+                            RoundedRectangle(cornerRadius: values.count > 12 ? 2.5 : 6, style: .continuous)
+                                .fill(values[i] > 0
+                                      ? AnyShapeStyle(LinearGradient(colors: [Color(hex: "#7C8B4F"), Color(hex: "#A3BC6E")], startPoint: .bottom, endPoint: .top))
+                                      : AnyShapeStyle(theme.track))
+                                .frame(height: max(values[i] > 0 ? 5 : 2.5, CGFloat(values[i]) / CGFloat(maxV) * barSpace))
+                        }
                         .frame(maxHeight: height, alignment: .bottom)
-                    if !labels.isEmpty {
-                        Text(i < labels.count ? labels[i] : "")
-                            .font(.quicksandBold(9))
-                            .foregroundColor(theme.muted)
-                            .lineLimit(1)
-                            .fixedSize()
+                        if !labels.isEmpty {
+                            Text(i < labels.count ? labels[i] : "")
+                                .font(.quicksandBold(9))
+                                .foregroundColor(theme.muted)
+                                .lineLimit(1)
+                                .fixedSize()
+                        }
+                    }
+                    .frame(maxWidth: .infinity)
+                    .contentShape(Rectangle())
+                    .onTapGesture {
+                        guard peekTitles != nil else { return }
+                        Haptics.tap()
+                        withAnimation(.spring(duration: 0.25)) { peek = peek == i ? nil : i }
                     }
                 }
-                .frame(maxWidth: .infinity)
+            }
+            if let p = peek, let titles = peekTitles, p < values.count, p < titles.count {
+                GeometryReader { geo in
+                    Text("\(titles[p]) · \(fmtMin(values[p]))")
+                        .font(.quicksandBold(11))
+                        .foregroundColor(theme.inkStrong)
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 5)
+                        .background(theme.card)
+                        .clipShape(Capsule())
+                        .overlay(Capsule().stroke(theme.lineStrong, lineWidth: 1))
+                        .shadow(color: .black.opacity(0.10), radius: 6, y: 2)
+                        .fixedSize()
+                        .position(x: bubbleX(for: p, width: geo.size.width), y: 14)
+                }
+                .allowsHitTesting(false)
+                .transition(.opacity.combined(with: .scale(scale: 0.9)))
             }
         }
         .frame(height: height + (labels.isEmpty ? 0 : 16), alignment: .bottom)
+        .onChange(of: values) { peek = nil }
+    }
+
+    /// Column center, clamped so the bubble never hangs off the card edge.
+    private func bubbleX(for i: Int, width: CGFloat) -> CGFloat {
+        let spacing: CGFloat = values.count > 12 ? 3 : 8
+        let colW = (width - spacing * CGFloat(values.count - 1)) / CGFloat(values.count)
+        let x = (colW + spacing) * CGFloat(i) + colW / 2
+        return min(max(x, 62), width - 62)
     }
 }
 

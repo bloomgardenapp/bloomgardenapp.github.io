@@ -216,14 +216,23 @@ struct TodayView: View {
         let today = todayYmd()
         var values: [Int] = []
         var labels: [String] = []
+        var valueLabels: [String]? = nil
+        var peekTitles: [String] = []
         if chartRange == "week" {
             values = store.lastNDays(7)
             labels = dayLabels7()
+            valueLabels = values.map(compactMin)
+            peekTitles = (0..<7).reversed().map { i in
+                i == 0 ? "Today" : fmtDate(addDays(today, -i))
+            }
         } else if chartRange == "month" {
             values = store.lastNDays(30)
             labels = (0..<30).reversed().map { i in
                 let d = addDays(today, -i)
                 return i % 5 == 0 ? String(Int(d.suffix(2)) ?? 0) : ""
+            }
+            peekTitles = (0..<30).reversed().map { i in
+                i == 0 ? "Today" : fmtDateShort(addDays(today, -i))
             }
         } else {
             let calNow = Date()
@@ -233,12 +242,15 @@ struct TodayView: View {
                 let key = String(ymd(d).prefix(7))
                 byMonth.append((key, 0))
                 labels.append(String(MONTH_NAMES[Calendar.current.component(.month, from: d) - 1].prefix(1)))
+                peekTitles.append("\(MONTH_NAMES[Calendar.current.component(.month, from: d) - 1].prefix(3)) \(Calendar.current.component(.year, from: d))")
             }
             for sess in store.state.sessions {
                 let key = String(sess.date.prefix(7))
                 if let i = byMonth.firstIndex(where: { $0.0 == key }) { byMonth[i].1 += sess.minutes }
             }
             values = byMonth.map(\.1)
+            // months are long — round the riding label to hours, exact time lives in the tap bubble
+            valueLabels = values.map { $0 >= 60 ? "\(Int((Double($0) / 60).rounded()))h" : compactMin($0) }
         }
         let total = values.reduce(0, +)
 
@@ -253,7 +265,7 @@ struct TodayView: View {
                     .buttonStyle(.plain)
                 }
             }
-            BarChart(values: values, labels: labels)
+            BarChart(values: values, labels: labels, valueLabels: valueLabels, peekTitles: peekTitles)
             Text(total > 0 ? "\(fmtMin(total)) focused this \(chartRange)" : "nothing this \(chartRange) yet — the bars are waiting")
                 .font(.quicksand(12)).foregroundColor(theme.muted)
         }
