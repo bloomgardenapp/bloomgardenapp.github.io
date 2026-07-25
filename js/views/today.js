@@ -82,7 +82,7 @@ function focusChartWithTip(values, labels, titles) {
     // clamp inside the card so edge bars don't get their bubble cut off
     const half = tip.offsetWidth / 2 + 4;
     tip.style.left = `${Math.min(Math.max(b.x - wb.x + b.width / 2, half), wb.width - half)}px`;
-    tip.style.top = `${Math.min(b.y - wb.y, wrap.clientHeight * 0.5) - 7}px`;
+    tip.style.top = `${Math.max(Math.min(b.y - wb.y, wrap.clientHeight * 0.5) - 7, tip.offsetHeight + 2)}px`;
     tip.classList.add('show');
   });
   wrap.addEventListener('mouseleave', () => tip.classList.remove('show'));

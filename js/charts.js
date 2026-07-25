@@ -13,7 +13,7 @@ export function barChartSVG(values, labels, { h = 72, color = null, maxW = null,
     const fill = v > 0 ? (color || 'url(#barGrad)') : 'var(--track)';
     const tip = (titles && titles[i]) || labels[i];
     // full-height transparent hit rect so the whole column is hoverable, even empty days
-    bars += `<g class="bar-col" data-tip="${tip}" data-min="${Math.round(v)}"><title>${tip} — ${fmtMin(v)}</title>
+    bars += `<g class="bar-col" data-tip="${tip}" data-min="${Math.round(v)}">
       <rect class="bar-hit" x="${x - gap / 2}" y="0" width="${bw + gap}" height="${h}" fill="transparent"/>
       <rect class="bar-rect" x="${x}" y="${y.toFixed(1)}" width="${bw}" height="${bh.toFixed(1)}" rx="6" fill="${fill}"/>
       <text x="${x + bw / 2}" y="${h + 13}" class="bar-label" text-anchor="middle">${labels[i]}</text></g>`;
