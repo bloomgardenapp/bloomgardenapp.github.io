@@ -605,7 +605,7 @@ details.done-details summary:hover { color: var(--ink); }
 .bars .bar-col { cursor: default; }
 .bars .bar-rect { transition: opacity 0.12s; }
 .bars .bar-col:hover .bar-rect { opacity: 0.78; }
-.chart-tip-wrap { position: relative; }
+.chart-tip-wrap { position: relative; padding-top: 36px; } /* reserved band the tooltip lives in — it never covers bars or title */
 .hm { display: block; overflow: visible; }
 .hm rect { rx: 3px; }
 .hm .hm-lab { font-size: 9px; font-weight: 700; fill: var(--muted); font-family: var(--font-body); letter-spacing: 0.04em; }
