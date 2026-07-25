@@ -152,6 +152,8 @@ struct BarChart: View {
 
     var body: some View {
         let maxV = max(values.max() ?? 0, 30)
+        // an empty strip above the bars where the tap bubble lives, so it never covers them
+        let headroom: CGFloat = peekTitles == nil ? 0 : 30
         ZStack(alignment: .top) {
             HStack(alignment: .bottom, spacing: values.count > 12 ? 3 : 8) {
                 ForEach(values.indices, id: \.self) { i in
@@ -161,6 +163,7 @@ struct BarChart: View {
                                   ? AnyShapeStyle(LinearGradient(colors: [Color(hex: "#7C8B4F"), Color(hex: "#A3BC6E")], startPoint: .bottom, endPoint: .top))
                                   : AnyShapeStyle(theme.track))
                             .frame(height: max(values[i] > 0 ? 5 : 2.5, CGFloat(values[i]) / CGFloat(maxV) * height))
+                            .frame(maxWidth: 26)   // web bars stay slim (bw 20 × 1.35 cap) — never chunky slabs
                             .frame(maxHeight: height, alignment: .bottom)
                         if !labels.isEmpty {
                             Text(i < labels.count ? labels[i] : "")
@@ -179,6 +182,7 @@ struct BarChart: View {
                     }
                 }
             }
+            .padding(.top, headroom)
             if let p = peek, let titles = peekTitles, p < values.count, p < titles.count {
                 GeometryReader { geo in
                     Text("\(titles[p]) · \(fmtMin(values[p]))")
@@ -197,7 +201,7 @@ struct BarChart: View {
                 .transition(.opacity.combined(with: .scale(scale: 0.9)))
             }
         }
-        .frame(height: height + (labels.isEmpty ? 0 : 16), alignment: .bottom)
+        .frame(height: height + headroom + (labels.isEmpty ? 0 : 16), alignment: .bottom)
         .onChange(of: values) { peek = nil }
     }
 
