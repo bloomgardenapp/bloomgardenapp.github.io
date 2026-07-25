@@ -4,8 +4,8 @@
 //   cd ios/tools/icongen
 //   xcrun swiftc -parse-as-library -O -target arm64-apple-macos14.0 \
 //       main.swift ../../Shared/PlantArt.swift -o icongen
-//   ./icongen bloom 12 light  ../../Bloom/Assets.xcassets/AppIcon.appiconset/AppIcon.png       900
-//   ./icongen bloom 12 dark   ../../Bloom/Assets.xcassets/AppIcon.appiconset/AppIcon-Dark.png  900
+//   ./icongen bloom 2 light  ../../Bloom/Assets.xcassets/AppIcon.appiconset/AppIcon.png       1700
+//   ./icongen bloom 2 dark   ../../Bloom/Assets.xcassets/AppIcon.appiconset/AppIcon-Dark.png  1700
 //   # tinted = grayscale of the dark one:
 //   python3 -c "from PIL import Image, ImageOps; p='../../Bloom/Assets.xcassets/AppIcon.appiconset/'; \
 //       ImageOps.autocontrast(Image.open(p+'AppIcon-Dark.png').convert('L')).convert('RGB').save(p+'AppIcon-Tinted.png')"
