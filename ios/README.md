@@ -60,6 +60,7 @@ ios/
     …Views + Theme + Components
   BloomWidgets/            widget extension: garden widget + focus Live Activity
   tools/icongen/           renders the app icon (day/night/tinted) from PlantArt.swift itself — regen commands in its header
+  tools/deploy-all.sh      build once, install on every booted simulator — no device left on a stale build
 ```
 
 Testing hooks (`DEBUG` builds only, like the web's `window.__bloom`): launch with `-bloomTab garden`, `-bloomSheet settings`, or `-bloomZen 1`.
