@@ -185,7 +185,7 @@ struct BarChart: View {
             .padding(.top, headroom)
             if let p = peek, let titles = peekTitles, p < values.count, p < titles.count {
                 GeometryReader { geo in
-                    Text("\(titles[p]) · \(fmtMin(values[p]))")
+                    Text("\(titles[p]) · \(values[p] > 0 ? fmtMin(values[p]) : "no focus")")
                         .font(.quicksandBold(11))
                         .foregroundColor(theme.inkStrong)
                         .padding(.horizontal, 10)

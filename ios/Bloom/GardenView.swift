@@ -310,7 +310,14 @@ struct SkillDetailsView: View {
 
                     VStack(alignment: .leading, spacing: 8) {
                         Text("LAST 14 DAYS").font(.quicksandBold(10)).kerning(1).foregroundColor(theme.muted)
-                        BarChart(values: store.lastNDays(14, skillId: sk.id), labels: [], height: 48)
+                        let today = todayYmd()
+                        let labels14 = (0..<14).reversed().map { i -> String in
+                            i % 3 == 0 ? String(Int(addDays(today, -i).suffix(2)) ?? 0) : "·"
+                        }
+                        let titles14 = (0..<14).reversed().map { i in
+                            i == 0 ? "Today" : fmtDateShort(addDays(today, -i))
+                        }
+                        BarChart(values: store.lastNDays(14, skillId: sk.id), labels: labels14, height: 48, peekTitles: titles14)
 
                         Text("SESSIONS · \(sessions.count)").font(.quicksandBold(10)).kerning(1).foregroundColor(theme.muted)
                             .padding(.top, 6)
