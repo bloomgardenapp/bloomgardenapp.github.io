@@ -153,7 +153,7 @@ struct BarChart: View {
     var body: some View {
         let maxV = max(values.max() ?? 0, 30)
         // an empty strip above the bars where the tap bubble lives, so it never covers them
-        let headroom: CGFloat = peekTitles == nil ? 0 : 30
+        let headroom: CGFloat = peekTitles == nil ? 0 : 36
         ZStack(alignment: .top) {
             HStack(alignment: .bottom, spacing: values.count > 12 ? 3 : 8) {
                 ForEach(values.indices, id: \.self) { i in
