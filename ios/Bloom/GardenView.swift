@@ -76,7 +76,7 @@ struct GardenView: View {
             .padding(.horizontal, 22)
             .padding(.top, 14)
             .padding(.bottom, 28)
-            .pageColumn(1080)
+            .pageColumn(1280)
         }
         .fullScreenCover(isPresented: $showSkillEditor) {
             SkillEditorView(store: store) { _ in }
@@ -375,7 +375,7 @@ struct SkillDetailsView: View {
                     .padding(.bottom, 24)
                 }
             }
-            .pageColumn(700)
+            .pageColumn(940)
             .background(theme.bg.ignoresSafeArea())
             .alert("Uproot \(sk.name)? Its \(sessions.count) sessions and XP disappear. Linked tasks & notes stay (unlinked).", isPresented: $confirmUproot) {
                 Button("Cancel", role: .cancel) {}
@@ -455,7 +455,7 @@ struct PlantBookView: View {
             .padding(.horizontal, 22)
             .padding(.bottom, 24)
         }
-        .pageColumn(760)
+        .pageColumn(980)
         .background(theme.bg.ignoresSafeArea())
         .overlay(alignment: .topTrailing) {
             Button { dismiss() } label: {

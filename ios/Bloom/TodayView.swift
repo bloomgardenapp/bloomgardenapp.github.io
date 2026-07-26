@@ -89,7 +89,7 @@ struct TodayView: View {
             .padding(.horizontal, 22)
             .padding(.top, 14)
             .padding(.bottom, 28)
-            .pageColumn(1080)
+            .pageColumn(1280)
         }
         .scrollDismissesKeyboard(.interactively)
     }

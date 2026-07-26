@@ -107,7 +107,7 @@ struct SkillEditorView: View {
             }
             .padding(.horizontal, 22)
         }
-        .pageColumn(660)
+        .pageColumn(860)
         .background(theme.bg.ignoresSafeArea())
         .overlay(alignment: .topTrailing) {
             Button { dismiss() } label: {

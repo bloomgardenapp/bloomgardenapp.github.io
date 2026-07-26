@@ -117,7 +117,7 @@ struct TasksView: View {
             .padding(.horizontal, 22)
             .padding(.top, 14)
             .padding(.bottom, 28)
-            .pageColumn(700)
+            .pageColumn(940)
         }
         .scrollDismissesKeyboard(.interactively)
         .fullScreenCover(isPresented: $showSkillEditor) {

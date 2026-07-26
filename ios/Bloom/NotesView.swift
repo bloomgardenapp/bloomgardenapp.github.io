@@ -80,7 +80,7 @@ struct NotesView: View {
             .padding(.horizontal, 22)
             .padding(.top, 14)
             .padding(.bottom, 28)
-            .pageColumn(700)
+            .pageColumn(940)
         }
         .scrollDismissesKeyboard(.interactively)
     }
@@ -246,7 +246,7 @@ struct NoteEditor: View {
             .padding(.horizontal, 22)
             .padding(.top, 14)
             .padding(.bottom, 28)
-            .pageColumn(760)
+            .pageColumn(980)
         }
         .scrollDismissesKeyboard(.interactively)
         .onAppear(perform: load)

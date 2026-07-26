@@ -171,7 +171,7 @@ struct SettingsView: View {
             }
             .padding(.horizontal, 22)
         }
-        .pageColumn(660)
+        .pageColumn(860)
         .background(theme.bg.ignoresSafeArea())
         .alert("Start completely fresh? Tasks, notes, garden — everything is wiped.", isPresented: $confirmReset) {
             Button("Cancel", role: .cancel) {}

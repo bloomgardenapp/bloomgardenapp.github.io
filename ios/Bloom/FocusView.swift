@@ -42,7 +42,7 @@ struct FocusView: View {
             .padding(.horizontal, 22)
             .padding(.top, 14)
             .padding(.bottom, 28)
-            .pageColumn(820)
+            .pageColumn(1080)
         }
         .scrollDismissesKeyboard(.interactively)
         .fullScreenCover(isPresented: $showSkillEditor) {
