@@ -17,9 +17,18 @@ struct SettingsView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 10) {
-                Capsule().fill(theme.line).frame(width: 36, height: 4)
-                    .frame(maxWidth: .infinity).padding(.top, 10)
-                BloomTitle(prefix: "Settings", em: "", size: 22)
+                HStack {
+                    BloomTitle(prefix: "Settings", em: "", size: 22)
+                    Spacer()
+                    Button { dismiss() } label: {
+                        Ic(name: "x", size: 15).foregroundColor(theme.muted)
+                            .padding(9)
+                            .background(Circle().fill(theme.card))
+                            .overlay(Circle().stroke(theme.line, lineWidth: 1))
+                    }
+                    .buttonStyle(.plain)
+                }
+                .padding(.top, 6)
 
                 fieldLabel("Account")
                 accountSection
@@ -162,7 +171,7 @@ struct SettingsView: View {
             }
             .padding(.horizontal, 22)
         }
-        .background(theme.bg)
+        .background(theme.bg.ignoresSafeArea())
         .alert("Start completely fresh? Tasks, notes, garden — everything is wiped.", isPresented: $confirmReset) {
             Button("Cancel", role: .cancel) {}
             Button("Wipe it all", role: .destructive) {

@@ -12,7 +12,7 @@ let ICON_TO_SF: [String: String] = [
     "drop": "drop", "pot": "basket", "clock": "clock", "arrow": "arrow.right", "heart": "heart",
     "bell": "bell", "bell-off": "bell.slash", "download": "arrow.down.circle", "folder": "folder",
     "reset": "arrow.counterclockwise", "help": "questionmark.circle", "repeat": "repeat",
-    "expand": "arrow.up.left.and.arrow.down.right", "pip": "pip", "x-circle": "xmark.circle",
+    "expand": "arrow.up.left.and.arrow.down.right", "pip": "pip", "x-circle": "xmark.circle", "x": "xmark",
     "music": "music.note", "music-off": "speaker.slash",
     // subject icons for plants
     "calc": "plus.forwardslash.minus", "book": "book", "code": "chevron.left.forwardslash.chevron.right",

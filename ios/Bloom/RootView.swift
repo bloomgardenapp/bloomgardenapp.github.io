@@ -76,7 +76,8 @@ struct RootView: View {
             ZenView(store: store)
                 .environment(\.theme, theme)
         }
-        .sheet(isPresented: $showSettings) {
+        // a solid full screen (not a sheet) — sheets drift with every drag on iOS 26
+        .fullScreenCover(isPresented: $showSettings) {
             SettingsView(store: store)
                 .environment(\.theme, theme)
                 .preferredColorScheme(theme.isDark ? .dark : .light)

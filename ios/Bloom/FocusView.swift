@@ -36,7 +36,7 @@ struct FocusView: View {
             .padding(.bottom, 28)
         }
         .scrollDismissesKeyboard(.interactively)
-        .sheet(isPresented: $showSkillEditor) {
+        .fullScreenCover(isPresented: $showSkillEditor) {
             SkillEditorView(store: store) { sk in
                 if let sk { selSkillId = sk.id }
             }

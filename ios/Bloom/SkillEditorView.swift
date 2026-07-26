@@ -22,8 +22,6 @@ struct SkillEditorView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 12) {
-                Capsule().fill(theme.line).frame(width: 36, height: 4)
-                    .frame(maxWidth: .infinity).padding(.top, 10)
 
                 if editing != nil {
                     BloomTitle(prefix: "Edit ", em: "plant", size: 22)
@@ -109,7 +107,18 @@ struct SkillEditorView: View {
             }
             .padding(.horizontal, 22)
         }
-        .background(theme.bg)
+        .background(theme.bg.ignoresSafeArea())
+        .overlay(alignment: .topTrailing) {
+            Button { dismiss() } label: {
+                Ic(name: "x", size: 15).foregroundColor(theme.muted)
+                    .padding(9)
+                    .background(Circle().fill(theme.card))
+                    .overlay(Circle().stroke(theme.line, lineWidth: 1))
+            }
+            .buttonStyle(.plain)
+            .padding(.trailing, 18)
+            .padding(.top, 8)
+        }
         .onAppear {
             if let editing {
                 name = editing.name

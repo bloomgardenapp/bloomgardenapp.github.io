@@ -75,15 +75,16 @@ struct GardenView: View {
             .padding(.top, 14)
             .padding(.bottom, 28)
         }
-        .sheet(isPresented: $showSkillEditor) {
+        .fullScreenCover(isPresented: $showSkillEditor) {
             SkillEditorView(store: store) { _ in }
                 .environment(\.theme, theme)
         }
-        .sheet(isPresented: $showPlantBook) {
+        .fullScreenCover(isPresented: $showPlantBook) {
             PlantBookView(store: store)
                 .environment(\.theme, theme)
         }
-        .sheet(item: Binding(
+        // a solid full screen (not a sheet) — sheets drift with every drag on iOS 26
+        .fullScreenCover(item: Binding(
             get: { detailSkillId.flatMap { id in store.state.skills.first { $0.id == id } } },
             set: { detailSkillId = $0?.id }
         )) { sk in
@@ -285,7 +286,18 @@ struct SkillDetailsView: View {
 
             ScrollView {
                 VStack(spacing: 14) {
-                    Capsule().fill(theme.line).frame(width: 36, height: 4).padding(.top, 10)
+                    HStack {
+                        Spacer()
+                        Button { dismiss() } label: {
+                            Ic(name: "x", size: 15).foregroundColor(theme.muted)
+                                .padding(9)
+                                .background(Circle().fill(theme.card))
+                                .overlay(Circle().stroke(theme.line, lineWidth: 1))
+                        }
+                        .buttonStyle(.plain)
+                    }
+                    .padding(.top, 6)
+                    .padding(.horizontal, 18)
                     PlantView(spec: PlantSpec(id: sk.id, colorHex: sk.color, species: sk.species), level: lv.level, sway: true)
                         .frame(height: 140)
                     HStack(spacing: 6) {
@@ -360,7 +372,7 @@ struct SkillDetailsView: View {
                     .padding(.bottom, 24)
                 }
             }
-            .background(theme.bg)
+            .background(theme.bg.ignoresSafeArea())
             .alert("Uproot \(sk.name)? Its \(sessions.count) sessions and XP disappear. Linked tasks & notes stay (unlinked).", isPresented: $confirmUproot) {
                 Button("Cancel", role: .cancel) {}
                 Button("Uproot", role: .destructive) {
@@ -380,6 +392,7 @@ struct SkillDetailsView: View {
 
 struct PlantBookView: View {
     @Environment(\.theme) private var theme
+    @Environment(\.dismiss) private var dismiss
     var store: AppStore
 
     private static let stages: [(name: String, lv: Int, need: Int)] = [
@@ -404,8 +417,6 @@ struct PlantBookView: View {
 
         return ScrollView {
             VStack(alignment: .leading, spacing: 12) {
-                Capsule().fill(theme.line).frame(width: 36, height: 4)
-                    .frame(maxWidth: .infinity).padding(.top, 10)
                 BloomTitle(prefix: "Plant ", em: "book", size: 22)
                 Text("Every plant grows through four stages. Keep watering to reveal them all.")
                     .font(.quicksand(12.5)).foregroundColor(theme.muted)
@@ -440,6 +451,17 @@ struct PlantBookView: View {
             .padding(.horizontal, 22)
             .padding(.bottom, 24)
         }
-        .background(theme.bg)
+        .background(theme.bg.ignoresSafeArea())
+        .overlay(alignment: .topTrailing) {
+            Button { dismiss() } label: {
+                Ic(name: "x", size: 15).foregroundColor(theme.muted)
+                    .padding(9)
+                    .background(Circle().fill(theme.card))
+                    .overlay(Circle().stroke(theme.line, lineWidth: 1))
+            }
+            .buttonStyle(.plain)
+            .padding(.trailing, 18)
+            .padding(.top, 8)
+        }
     }
 }
