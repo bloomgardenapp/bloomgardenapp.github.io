@@ -124,7 +124,7 @@ struct FocusView: View {
                 .buttonStyle(PillButtonStyle(kind: .primaryBig))
                 .padding(.vertical, 8)
             } else {
-                FlowChips(spacing: 6) {
+                FlowChips(spacing: 6, centered: true) {
                     ForEach(store.state.skills) { sk in
                         let sel = effectiveSkillId == sk.id
                         Button {
@@ -512,6 +512,8 @@ struct ZenView: View {
 
 struct FlowChips: Layout {
     var spacing: CGFloat = 6
+    /// Center each wrapped row (the focus card) instead of ragged-left (settings lists).
+    var centered: Bool = false
 
     func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
         let width = proposal.width ?? 320
@@ -526,13 +528,25 @@ struct FlowChips: Layout {
     }
 
     func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
-        var x = bounds.minX, y = bounds.minY, rowH: CGFloat = 0
+        // group into rows first so each row can be centered as a unit
+        var rows: [[(sub: LayoutSubview, size: CGSize)]] = [[]]
+        var x: CGFloat = 0
         for sub in subviews {
             let size = sub.sizeThatFits(.unspecified)
-            if x + size.width > bounds.maxX && x > bounds.minX { x = bounds.minX; y += rowH + spacing; rowH = 0 }
-            sub.place(at: CGPoint(x: x, y: y), proposal: .unspecified)
+            if x + size.width > bounds.width && x > 0 { rows.append([]); x = 0 }
+            rows[rows.count - 1].append((sub, size))
             x += size.width + spacing
-            rowH = max(rowH, size.height)
+        }
+        var y = bounds.minY
+        for row in rows {
+            let rowW = row.reduce(0) { $0 + $1.size.width } + spacing * CGFloat(max(0, row.count - 1))
+            var px = centered ? bounds.minX + (bounds.width - rowW) / 2 : bounds.minX
+            let rowH = row.map(\.size.height).max() ?? 0
+            for (sub, size) in row {
+                sub.place(at: CGPoint(x: px, y: y), proposal: .unspecified)
+                px += size.width + spacing
+            }
+            y += rowH + spacing
         }
     }
 }

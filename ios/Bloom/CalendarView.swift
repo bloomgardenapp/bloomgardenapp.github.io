@@ -5,6 +5,7 @@ import SwiftUI
 
 struct CalendarView: View {
     @Environment(\.theme) private var theme
+    @Environment(\.horizontalSizeClass) private var hSize
     @Bindable var store: AppStore
 
     @State private var viewYear: Int
@@ -14,6 +15,7 @@ struct CalendarView: View {
     @State private var dayMode = "list"          // list | plan
     @State private var quickTaskText = ""
     @State private var pageScrollLocked = false
+    @State private var dayTapTick = 0
 
     init(store: AppStore) {
         self.store = store
@@ -26,22 +28,29 @@ struct CalendarView: View {
     }
 
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 18) {
-                ViewHeader(prefix: "Your ", em: "month", icon: "calendar",
-                           sub: "Your events, tasks and focus — the whole month at a glance.") { EmptyView() }
-                monthGrid.card(padding: 12)
-                DayPanel(store: store, selected: $selected, editingId: $editingId,
-                         dayMode: $dayMode, quickTaskText: $quickTaskText,
-                         pageScrollLocked: $pageScrollLocked)
+        ScrollViewReader { proxy in
+            ScrollView {
+                VStack(alignment: .leading, spacing: 18) {
+                    ViewHeader(prefix: "Your ", em: "month", icon: "calendar",
+                               sub: "Your events, tasks and focus — the whole month at a glance.") { EmptyView() }
+                    monthGrid.card(padding: 12)
+                    DayPanel(store: store, selected: $selected, editingId: $editingId,
+                             dayMode: $dayMode, quickTaskText: $quickTaskText,
+                             pageScrollLocked: $pageScrollLocked)
+                        .id("dayPanel")
+                }
+                .padding(.horizontal, 22)
+                .padding(.top, 14)
+                .padding(.bottom, 28)
+                .pageColumn(1080)
             }
-            .padding(.horizontal, 22)
-            .padding(.top, 14)
-            .padding(.bottom, 28)
-            .pageColumn(1080)
+            .scrollDisabled(pageScrollLocked)   // a held planner block owns the touch
+            .scrollDismissesKeyboard(.interactively)
+            .onChange(of: dayTapTick) {
+                // picking a date jumps down to that day's panel — tapping did "nothing" before
+                withAnimation(.easeInOut(duration: 0.35)) { proxy.scrollTo("dayPanel", anchor: .top) }
+            }
         }
-        .scrollDisabled(pageScrollLocked)   // a held planner block owns the touch
-        .scrollDismissesKeyboard(.interactively)
     }
 
     // MARK: - Month grid
@@ -118,6 +127,7 @@ struct CalendarView: View {
             Sfx.shared.click()
             selected = dY
             editingId = nil
+            dayTapTick += 1
             if other {
                 viewYear = Calendar.current.component(.year, from: d)
                 viewMonth = Calendar.current.component(.month, from: d) - 1
@@ -126,8 +136,8 @@ struct CalendarView: View {
             VStack(spacing: 2) {
                 HStack(spacing: 2) {
                     Text("\(Calendar.current.component(.day, from: d))")
-                        .font(.quicksandBold(11.5))
-                        .foregroundColor(other ? theme.muted.opacity(0.5) : isToday ? theme.olive2 : theme.ink)
+                        .font(.quicksandBold(hSize == .regular ? 14 : 12.5))
+                        .foregroundColor(other ? theme.muted.opacity(0.45) : isToday ? theme.olive2 : theme.inkStrong)
                     Spacer(minLength: 0)
                     if !openDue.isEmpty { Circle().fill(theme.coral).frame(width: 4, height: 4) }
                     if focusMin > 0 { Circle().fill(theme.green).frame(width: 4, height: 4) }
@@ -152,12 +162,13 @@ struct CalendarView: View {
                 }
                 Spacer(minLength: 0)
             }
-            .padding(3)
-            .frame(height: 52)
+            .padding(hSize == .regular ? 5 : 3)
+            .frame(height: hSize == .regular ? 68 : 52)
             .background(RoundedRectangle(cornerRadius: 8, style: .continuous)
-                .fill(isSel ? theme.oliveSoft : isToday ? theme.card2 : .clear))
+                .fill(isSel ? theme.oliveSoft : isToday ? theme.card2 : other ? .clear : theme.card2.opacity(0.45)))
             .overlay(RoundedRectangle(cornerRadius: 8, style: .continuous)
-                .stroke(isToday ? theme.olive.opacity(0.6) : .clear, lineWidth: 1.2))
+                .stroke(isSel ? theme.olive : isToday ? theme.olive.opacity(0.6) : theme.line.opacity(0.6),
+                        lineWidth: isSel ? 1.6 : 1))
         }
         .buttonStyle(.plain)
     }
