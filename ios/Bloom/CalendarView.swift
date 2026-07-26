@@ -38,6 +38,7 @@ struct CalendarView: View {
             .padding(.horizontal, 22)
             .padding(.top, 14)
             .padding(.bottom, 28)
+            .pageColumn(760)
         }
         .scrollDisabled(pageScrollLocked)   // a held planner block owns the touch
         .scrollDismissesKeyboard(.interactively)

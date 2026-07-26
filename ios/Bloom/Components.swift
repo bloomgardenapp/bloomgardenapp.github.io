@@ -23,6 +23,15 @@ extension View {
     func card(padding: CGFloat = 18) -> some View { modifier(CardModifier(padding: padding)) }
 }
 
+// MARK: - Page column (iPad: content stays a readable centered column)
+
+extension View {
+    /// Cap content width and center it — phone layouts pass through untouched.
+    func pageColumn(_ maxWidth: CGFloat = 700) -> some View {
+        frame(maxWidth: maxWidth).frame(maxWidth: .infinity)
+    }
+}
+
 // MARK: - Serif titles: "Your *garden*" pattern
 
 struct BloomTitle: View {

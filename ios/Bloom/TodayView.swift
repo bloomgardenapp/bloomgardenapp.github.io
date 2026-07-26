@@ -31,6 +31,7 @@ private let QUOTES: [(String, String?)] = [
 
 struct TodayView: View {
     @Environment(\.theme) private var theme
+    @Environment(\.horizontalSizeClass) private var hSize
     @Bindable var store: AppStore
     var openSettings: () -> Void
     var switchTab: (Tab) -> Void
@@ -57,20 +58,38 @@ struct TodayView: View {
         let (greet, gIcon) = greeting
         let name = store.state.settings.name.isEmpty ? "friend" : store.state.settings.name
 
+        let wide = hSize == .regular
         ScrollView {
             VStack(alignment: .leading, spacing: 18) {
                 header(greet: greet, gIcon: gIcon, name: name)
-                statsRow(today: today)
-                planCard(today: today)
-                quickLogCard
-                weekCard
-                focusChartCard
-                gardenPeek
-                upNextCard(today: today)
+                statsRow(today: today, wide: wide)
+                if wide {
+                    // the web's desktop grid-2: plan/week/peek beside quick log/chart/up next
+                    HStack(alignment: .top, spacing: 18) {
+                        VStack(spacing: 18) {
+                            planCard(today: today)
+                            weekCard
+                            gardenPeek
+                        }
+                        VStack(spacing: 18) {
+                            quickLogCard
+                            focusChartCard
+                            upNextCard(today: today)
+                        }
+                    }
+                } else {
+                    planCard(today: today)
+                    quickLogCard
+                    weekCard
+                    focusChartCard
+                    gardenPeek
+                    upNextCard(today: today)
+                }
             }
             .padding(.horizontal, 22)
             .padding(.top, 14)
             .padding(.bottom, 28)
+            .pageColumn(1080)
         }
         .scrollDismissesKeyboard(.interactively)
     }
@@ -106,8 +125,8 @@ struct TodayView: View {
         }
     }
 
-    private func statsRow(today: String) -> some View {
-        let cols = [GridItem(.flexible(), spacing: 10), GridItem(.flexible(), spacing: 10)]
+    private func statsRow(today: String, wide: Bool) -> some View {
+        let cols = Array(repeating: GridItem(.flexible(), spacing: 10), count: wide ? 4 : 2)
         return LazyVGrid(columns: cols, spacing: 10) {
             StatTile(icon: "flame", tile: theme.peachSoft, num: String(store.streak()), label: "day streak")
             StatTile(icon: "stopwatch", tile: theme.mintSoft, num: fmtMin(store.minutesOn(today)), label: "focused today")

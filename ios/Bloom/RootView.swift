@@ -152,6 +152,7 @@ struct RootView: View {
                 .overlay(Capsule(style: .continuous).stroke(theme.line, lineWidth: 1))
                 .shadow(color: .black.opacity(theme.isDark ? 0.4 : 0.10), radius: 12, y: 4)
         )
+        .frame(maxWidth: 560)
         .padding(.horizontal, 20)
         .padding(.bottom, 2)
     }

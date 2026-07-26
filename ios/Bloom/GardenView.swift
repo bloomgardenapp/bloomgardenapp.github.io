@@ -4,6 +4,7 @@ import SwiftUI
 
 struct GardenView: View {
     @Environment(\.theme) private var theme
+    @Environment(\.horizontalSizeClass) private var hSize
     @Bindable var store: AppStore
     var openSettings: () -> Void
 
@@ -65,15 +66,17 @@ struct GardenView: View {
                     showSkillEditor = true
                 } label: {
                     HStack(spacing: 6) { Ic(name: "pot", size: 14); Text("Plant a new skill") }
-                        .frame(maxWidth: .infinity)
+                        .frame(maxWidth: hSize == .regular ? 300 : .infinity)
                 }
                 .buttonStyle(PillButtonStyle(kind: .primaryBig))
+                .frame(maxWidth: .infinity)
 
                 keepsakeShelf
             }
             .padding(.horizontal, 22)
             .padding(.top, 14)
             .padding(.bottom, 28)
+            .pageColumn(1080)
         }
         .fullScreenCover(isPresented: $showSkillEditor) {
             SkillEditorView(store: store) { _ in }
@@ -137,7 +140,7 @@ struct GardenView: View {
     // MARK: plant cards
 
     private func plantGrid(skills: [Skill], topId: String?) -> some View {
-        let cols = [GridItem(.flexible(), spacing: 10), GridItem(.flexible(), spacing: 10)]
+        let cols = Array(repeating: GridItem(.flexible(), spacing: 10), count: hSize == .regular ? 4 : 2)
         return LazyVGrid(columns: cols, spacing: 10) {
             ForEach(skills) { sk in
                 plantCard(sk, selected: sk.id == topId)
@@ -183,7 +186,7 @@ struct GardenView: View {
 
     private var keepsakeShelf: some View {
         let earned = KEEPSAKES.filter { $0.test(store) }
-        let cols = [GridItem(.flexible(), spacing: 8), GridItem(.flexible(), spacing: 8), GridItem(.flexible(), spacing: 8)]
+        let cols = Array(repeating: GridItem(.flexible(), spacing: 8), count: hSize == .regular ? 6 : 3)
         return VStack(alignment: .leading, spacing: 10) {
             HStack {
                 BloomTitle(prefix: "Keepsake ", em: "shelf", icon: "star")
@@ -372,6 +375,7 @@ struct SkillDetailsView: View {
                     .padding(.bottom, 24)
                 }
             }
+            .pageColumn(700)
             .background(theme.bg.ignoresSafeArea())
             .alert("Uproot \(sk.name)? Its \(sessions.count) sessions and XP disappear. Linked tasks & notes stay (unlinked).", isPresented: $confirmUproot) {
                 Button("Cancel", role: .cancel) {}
@@ -451,6 +455,7 @@ struct PlantBookView: View {
             .padding(.horizontal, 22)
             .padding(.bottom, 24)
         }
+        .pageColumn(760)
         .background(theme.bg.ignoresSafeArea())
         .overlay(alignment: .topTrailing) {
             Button { dismiss() } label: {

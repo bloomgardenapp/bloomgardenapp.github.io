@@ -6,6 +6,7 @@ private let FREE = "free"   // sentinel: focus without a plant
 
 struct FocusView: View {
     @Environment(\.theme) private var theme
+    @Environment(\.horizontalSizeClass) private var hSize
     @Bindable var store: AppStore
 
     @State private var selSkillId: String? = nil
@@ -28,12 +29,20 @@ struct FocusView: View {
                 } else {
                     setupCard
                 }
-                manualCard
-                historyCard
+                if hSize == .regular {
+                    HStack(alignment: .top, spacing: 18) {
+                        manualCard
+                        historyCard
+                    }
+                } else {
+                    manualCard
+                    historyCard
+                }
             }
             .padding(.horizontal, 22)
             .padding(.top, 14)
             .padding(.bottom, 28)
+            .pageColumn(820)
         }
         .scrollDismissesKeyboard(.interactively)
         .fullScreenCover(isPresented: $showSkillEditor) {
