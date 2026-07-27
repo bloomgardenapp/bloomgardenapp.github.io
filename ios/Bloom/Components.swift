@@ -23,6 +23,29 @@ extension View {
     func card(padding: CGFloat = 18) -> some View { modifier(CardModifier(padding: padding)) }
 }
 
+// MARK: - iPad comfort scale (the whole UI ~20% bigger on big screens)
+
+/// iPhone-sized type reads tiny spread across a 13" canvas. On regular width the
+/// content lays out at a smaller logical size and scales up, so text, cards and
+/// plants all grow together while layouts stay adaptive. Presented covers live in
+/// their own context — give each one this modifier too.
+struct IPadComfortScale: ViewModifier {
+    @Environment(\.horizontalSizeClass) private var hSize
+
+    func body(content: Content) -> some View {
+        GeometryReader { geo in
+            let s: CGFloat = hSize == .regular ? 1.2 : 1
+            content
+                .frame(width: geo.size.width / s, height: geo.size.height / s)
+                .scaleEffect(s, anchor: .topLeading)
+        }
+    }
+}
+
+extension View {
+    func iPadComfortScale() -> some View { modifier(IPadComfortScale()) }
+}
+
 // MARK: - Page column (iPad: content stays a readable centered column)
 
 extension View {

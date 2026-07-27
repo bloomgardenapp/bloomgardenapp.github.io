@@ -69,21 +69,25 @@ struct RootView: View {
             ConfettiOverlay(tick: store.confettiTick)
             ToastOverlay(toasts: store.toasts)
         }
+        .iPadComfortScale()
         .environment(\.theme, theme)
         .tint(theme.olive2)
         .preferredColorScheme(theme.isDark ? .dark : .light)
         .fullScreenCover(isPresented: $store.zenPresented) {
             ZenView(store: store)
+                .iPadComfortScale()
                 .environment(\.theme, theme)
         }
         // a solid full screen (not a sheet) — sheets drift with every drag on iOS 26
         .fullScreenCover(isPresented: $showSettings) {
             SettingsView(store: store)
+                .iPadComfortScale()
                 .environment(\.theme, theme)
                 .preferredColorScheme(theme.isDark ? .dark : .light)
         }
         .fullScreenCover(isPresented: .constant(!store.state.settings.onboarded)) {
             OnboardingView(store: store)
+                .iPadComfortScale()
                 .environment(\.theme, theme)
         }
         .onReceive(ticker) { _ in

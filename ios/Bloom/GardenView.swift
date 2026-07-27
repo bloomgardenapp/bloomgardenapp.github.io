@@ -80,10 +80,12 @@ struct GardenView: View {
         }
         .fullScreenCover(isPresented: $showSkillEditor) {
             SkillEditorView(store: store) { _ in }
+                .iPadComfortScale()
                 .environment(\.theme, theme)
         }
         .fullScreenCover(isPresented: $showPlantBook) {
             PlantBookView(store: store)
+                .iPadComfortScale()
                 .environment(\.theme, theme)
         }
         // a solid full screen (not a sheet) — sheets drift with every drag on iOS 26
@@ -92,6 +94,7 @@ struct GardenView: View {
             set: { detailSkillId = $0?.id }
         )) { sk in
             SkillDetailsView(store: store, skillId: sk.id)
+                .iPadComfortScale()
                 .environment(\.theme, theme)
         }
     }
@@ -386,6 +389,7 @@ struct SkillDetailsView: View {
             }
             .sheet(isPresented: $showEditor) {
                 SkillEditorView(store: store, editing: sk) { _ in }
+                    .iPadComfortScale()
                     .environment(\.theme, theme)
             }
         }

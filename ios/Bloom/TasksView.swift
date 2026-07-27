@@ -124,6 +124,7 @@ struct TasksView: View {
             SkillEditorView(store: store) { sk in
                 if let sk { draftSkillId = sk.id }
             }
+            .iPadComfortScale()
             .environment(\.theme, theme)
         }
     }

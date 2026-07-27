@@ -49,6 +49,7 @@ struct FocusView: View {
             SkillEditorView(store: store) { sk in
                 if let sk { selSkillId = sk.id }
             }
+            .iPadComfortScale()
             .environment(\.theme, theme)
         }
     }

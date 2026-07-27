@@ -28,12 +28,15 @@ struct CalendarView: View {
     }
 
     var body: some View {
+        GeometryReader { geo in
+        // the web stacks below 900px — same breakpoint here (logical points ≈ CSS px)
+        let sideBySide = hSize == .regular && geo.size.width > 900
         ScrollViewReader { proxy in
             ScrollView {
                 VStack(alignment: .leading, spacing: 18) {
                     ViewHeader(prefix: "Your ", em: "month", icon: "calendar",
                                sub: "Your events, tasks and focus — the whole month at a glance.") { EmptyView() }
-                    if hSize == .regular {
+                    if sideBySide {
                         // the web's cal-wrap: month grid beside the day panel (1.7fr : 1fr)
                         HStack(alignment: .top, spacing: 16) {
                             monthGrid.card(padding: 14)
@@ -61,10 +64,11 @@ struct CalendarView: View {
             .onChange(of: dayTapTick) {
                 // picking a date jumps down to that day's panel — tapping did "nothing" before
                 // (side-by-side layouts already show the panel, no scroll needed)
-                if hSize != .regular {
+                if !sideBySide {
                     withAnimation(.easeInOut(duration: 0.35)) { proxy.scrollTo("dayPanel", anchor: .top) }
                 }
             }
+        }
         }
     }
 
