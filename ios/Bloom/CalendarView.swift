@@ -33,11 +33,23 @@ struct CalendarView: View {
                 VStack(alignment: .leading, spacing: 18) {
                     ViewHeader(prefix: "Your ", em: "month", icon: "calendar",
                                sub: "Your events, tasks and focus — the whole month at a glance.") { EmptyView() }
-                    monthGrid.card(padding: 12)
-                    DayPanel(store: store, selected: $selected, editingId: $editingId,
-                             dayMode: $dayMode, quickTaskText: $quickTaskText,
-                             pageScrollLocked: $pageScrollLocked)
-                        .id("dayPanel")
+                    if hSize == .regular {
+                        // the web's cal-wrap: month grid beside the day panel (1.7fr : 1fr)
+                        HStack(alignment: .top, spacing: 16) {
+                            monthGrid.card(padding: 14)
+                            DayPanel(store: store, selected: $selected, editingId: $editingId,
+                                     dayMode: $dayMode, quickTaskText: $quickTaskText,
+                                     pageScrollLocked: $pageScrollLocked)
+                                .frame(width: 390)
+                                .id("dayPanel")
+                        }
+                    } else {
+                        monthGrid.card(padding: 12)
+                        DayPanel(store: store, selected: $selected, editingId: $editingId,
+                                 dayMode: $dayMode, quickTaskText: $quickTaskText,
+                                 pageScrollLocked: $pageScrollLocked)
+                            .id("dayPanel")
+                    }
                 }
                 .padding(.horizontal, 22)
                 .padding(.top, 14)
@@ -48,7 +60,10 @@ struct CalendarView: View {
             .scrollDismissesKeyboard(.interactively)
             .onChange(of: dayTapTick) {
                 // picking a date jumps down to that day's panel — tapping did "nothing" before
-                withAnimation(.easeInOut(duration: 0.35)) { proxy.scrollTo("dayPanel", anchor: .top) }
+                // (side-by-side layouts already show the panel, no scroll needed)
+                if hSize != .regular {
+                    withAnimation(.easeInOut(duration: 0.35)) { proxy.scrollTo("dayPanel", anchor: .top) }
+                }
             }
         }
     }
@@ -97,15 +112,15 @@ struct CalendarView: View {
                 .buttonStyle(PillButtonStyle())
             }
 
-            HStack(spacing: 3) {
-                ForEach(["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"], id: \.self) { d in
-                    Text(d).font(.quicksandBold(10)).foregroundColor(theme.muted)
+            HStack(spacing: 6) {
+                ForEach(["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"], id: \.self) { d in
+                    Text(d).font(.quicksandBold(10)).kerning(1.2).foregroundColor(theme.muted)
                         .frame(maxWidth: .infinity)
                 }
             }
 
-            let cols = [GridItem](repeating: GridItem(.flexible(), spacing: 3), count: 7)
-            LazyVGrid(columns: cols, spacing: 3) {
+            let cols = [GridItem](repeating: GridItem(.flexible(), spacing: 6), count: 7)
+            LazyVGrid(columns: cols, spacing: 6) {
                 ForEach(0..<42, id: \.self) { i in
                     let d = Calendar.current.date(byAdding: .day, value: i - startIdx, to: firstOfMonth)!
                     dayCell(d, today: today)
@@ -133,42 +148,56 @@ struct CalendarView: View {
                 viewMonth = Calendar.current.component(.month, from: d) - 1
             }
         } label: {
-            VStack(spacing: 2) {
+            let wide = hSize == .regular
+            VStack(alignment: .leading, spacing: wide ? 4 : 2) {
                 HStack(spacing: 2) {
+                    // web .cal-num: display serif, muted — olive when today
                     Text("\(Calendar.current.component(.day, from: d))")
-                        .font(.quicksandBold(hSize == .regular ? 14 : 12.5))
-                        .foregroundColor(other ? theme.muted.opacity(0.45) : isToday ? theme.olive2 : theme.inkStrong)
+                        .font(.display(wide ? 12.5 : 11.5))
+                        .foregroundColor(isToday ? theme.olive2 : theme.muted)
                     Spacer(minLength: 0)
-                    if !openDue.isEmpty { Circle().fill(theme.coral).frame(width: 4, height: 4) }
-                    if focusMin > 0 { Circle().fill(theme.green).frame(width: 4, height: 4) }
+                    HStack(spacing: wide ? 4 : 3) {
+                        if !openDue.isEmpty {   // web task dot: hollow ring
+                            Circle().stroke(theme.muted, lineWidth: 1.7)
+                                .frame(width: wide ? 7 : 4.5, height: wide ? 7 : 4.5)
+                        }
+                        if focusMin > 0 {       // web focus dot: filled green
+                            Circle().fill(theme.green)
+                                .frame(width: wide ? 7 : 4.5, height: wide ? 7 : 4.5)
+                        }
+                    }
                 }
-                VStack(spacing: 1) {
+                VStack(alignment: .leading, spacing: wide ? 3 : 1) {
                     ForEach(evs.prefix(2)) { ev in
-                        HStack(spacing: 2) {
+                        HStack(spacing: wide ? 5 : 2) {
                             if ev.important == true {
-                                Text("★").font(.system(size: 6)).foregroundColor(Color(hex: "#E0B54F"))
+                                Text("★").font(.system(size: wide ? 9 : 6)).foregroundColor(Color(hex: "#E0B54F"))
                             } else {
-                                Circle().fill(Color(hex: ev.color)).frame(width: 3.5, height: 3.5)
+                                Circle().fill(Color(hex: ev.color))
+                                    .frame(width: wide ? 6 : 3.5, height: wide ? 6 : 3.5)
                             }
-                            Text(ev.title).font(.quicksand(7.5)).lineLimit(1)
-                                .foregroundColor(other ? theme.muted.opacity(0.6) : theme.ink)
+                            Text(ev.title)
+                                .font(.quicksandBold(wide ? 10.5 : 7.5)).lineLimit(1)
+                                .foregroundColor(ev.important == true ? theme.inkStrong : theme.ink)
                         }
                         .frame(maxWidth: .infinity, alignment: .leading)
                     }
                     if evs.count > 2 {
-                        Text("+\(evs.count - 2)").font(.quicksand(7)).foregroundColor(theme.muted)
+                        Text("+\(evs.count - 2)").font(.quicksandBold(wide ? 9.5 : 7)).foregroundColor(theme.muted)
                             .frame(maxWidth: .infinity, alignment: .leading)
                     }
                 }
                 Spacer(minLength: 0)
             }
-            .padding(hSize == .regular ? 5 : 3)
-            .frame(height: hSize == .regular ? 68 : 52)
-            .background(RoundedRectangle(cornerRadius: 8, style: .continuous)
-                .fill(isSel ? theme.oliveSoft : isToday ? theme.card2 : other ? .clear : theme.card2.opacity(0.45)))
-            .overlay(RoundedRectangle(cornerRadius: 8, style: .continuous)
-                .stroke(isSel ? theme.olive : isToday ? theme.olive.opacity(0.6) : theme.line.opacity(0.6),
-                        lineWidth: isSel ? 1.6 : 1))
+            .padding(wide ? 7 : 4)
+            .frame(minHeight: wide ? 84 : 52, alignment: .top)
+            // web .cal-cell: card-2 blocks on the card, whole cell fades when out of month,
+            // today gets the olive-soft wash, selected gets the olive border
+            .background(RoundedRectangle(cornerRadius: wide ? 14 : 9, style: .continuous)
+                .fill(isToday ? theme.oliveSoft : theme.card2))
+            .overlay(RoundedRectangle(cornerRadius: wide ? 14 : 9, style: .continuous)
+                .stroke(isSel ? theme.olive : .clear, lineWidth: 1.5))
+            .opacity(other ? 0.4 : 1)
         }
         .buttonStyle(.plain)
     }
