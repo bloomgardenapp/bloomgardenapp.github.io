@@ -4,9 +4,16 @@ import { store } from './store.js';
 let ctx;
 function ac() {
   if (!ctx) ctx = new (window.AudioContext || window.webkitAudioContext)();
-  if (ctx.state === 'suspended') ctx.resume();
+  // resume() rejects when there's been no interaction yet — expected, and we retry
+  // often enough while a timer is queued that the rejection must not go unhandled
+  if (ctx.state === 'suspended') { try { ctx.resume()?.catch?.(() => {}); } catch { /* fine */ } }
   return ctx;
 }
+
+// While a sound is being queued ahead of time, every tone/tap it makes is pushed
+// out by schedOffset seconds and collected in schedSink so it can be called back.
+let schedOffset = 0;
+let schedSink = null;
 
 function tone(freq, { t = 0, dur = 0.15, type = 'sine', vol = 0.16, glide = 0, lp = 0 } = {}) {
   if (!store.state.settings.sound) return;
@@ -15,7 +22,8 @@ function tone(freq, { t = 0, dur = 0.15, type = 'sine', vol = 0.16, glide = 0, l
     const o = c.createOscillator();
     const g = c.createGain();
     o.type = type;
-    const start = c.currentTime + t;
+    const start = c.currentTime + t + schedOffset;
+    schedSink?.push({ node: o, start });
     o.frequency.setValueAtTime(freq, start);
     if (glide) o.frequency.exponentialRampToValueAtTime(freq * glide, start + dur * 0.7);
     g.gain.setValueAtTime(0.0001, start);
@@ -45,8 +53,10 @@ function tap({ t = 0, dur = 0.015, vol = 0.02, freq = 2000 } = {}) {
     f.frequency.value = freq;
     const g = c.createGain();
     g.gain.value = vol;
+    const start = c.currentTime + t + schedOffset;
+    schedSink?.push({ node: s, start });
     s.connect(f).connect(g).connect(c.destination);
-    s.start(c.currentTime + t);
+    s.start(start);
   } catch { /* audio blocked — fine */ }
 }
 
@@ -85,6 +95,123 @@ export function playRinger(name, repeats = 1) {
     if (i === 0) r.play();
     else setTimeout(() => r.play(), i * (r.span || 1) * 1000);
   }
+}
+
+// ---- ringing on the audio clock, not the JS clock ----
+// A background tab's setInterval/setTimeout gets throttled to about once a minute,
+// which is why a pomodoro that ran out while you were in another tab used to stay
+// quiet until you looked. WebAudio runs on the audio thread instead: a node queued
+// with start(when) sounds at `when` no matter what the JS loop is doing. So the ring
+// is queued the moment a phase begins, and called back if you pause or finish early.
+
+export function audioRunning() {
+  try { return !!ctx && ctx.state === 'running'; } catch { return false; }
+}
+
+// Queue `play()` to sound `sec` from now. Returns a handle, or null when we can't
+// promise anything (sound off, or the context still locked behind a first click).
+// handle.cancel() silences whatever hasn't sounded yet and reports whether the sound
+// had already begun — that's how the timer knows not to ring a second time.
+export function scheduleSound(sec, play, onFire) {
+  if (!store.state.settings.sound) return null;
+  let c;
+  try { c = ac(); } catch { return null; }
+  if (c.state !== 'running') return null; // a suspended clock doesn't advance, so a queued time means nothing
+  const wait = Math.max(0, sec);
+  const at = c.currentTime + wait;
+  const sink = [];
+  const prevSink = schedSink, prevOffset = schedOffset;
+  schedSink = sink;
+  schedOffset = wait;
+  try { play(); } catch { /* nothing queued — the handle simply won't sound */ }
+  finally { schedSink = prevSink; schedOffset = prevOffset; }
+
+  // A silent marker ending just after the ring: its onended is a real event off the
+  // audio thread, so it nudges the throttled main thread awake right on time too.
+  let mark = null;
+  try {
+    if (c.createConstantSource) { mark = c.createConstantSource(); }
+    else { mark = c.createBufferSource(); mark.buffer = c.createBuffer(1, 128, c.sampleRate); mark.loop = true; }
+    const g = c.createGain();
+    g.gain.value = 0;
+    mark.connect(g).connect(c.destination);
+    mark.onended = () => { try { onFire?.(); } catch { /* fine */ } };
+    mark.start(c.currentTime);
+    mark.stop(at + 0.15); // a hair late on purpose, so the wall clock has definitely passed
+  } catch { mark = null; }
+
+  return {
+    at,
+    cancel() {
+      const began = c.currentTime >= at;
+      if (mark) { mark.onended = null; try { mark.stop(); } catch { /* already done */ } }
+      if (!began) {
+        for (const q of sink) {
+          try { q.node.stop(); } catch { /* already done */ }
+          try { q.node.disconnect(); } catch { /* already gone */ }
+        }
+      }
+      return began;
+    },
+  };
+}
+
+// The timer ringer, queued ahead — same repeats as sfx.alarm so it reads as an alarm.
+export function scheduleRinger(sec, { name, repeats = 3, onFire } = {}) {
+  const key = name || store.state.settings.ringer || 'chime';
+  const r = RINGERS[key] || RINGERS.chime;
+  return scheduleSound(sec, () => {
+    const base = schedOffset;
+    for (let i = 0; i < repeats; i++) {
+      schedOffset = base + i * (r.span || 1);
+      try { r.play(); } catch { /* fine */ }
+    }
+    schedOffset = base;
+  }, onFire);
+}
+
+// ---- unlocking, and the ring we owe you ----
+// Browsers keep the audio context asleep until you touch the page, so a ring that
+// lands on a tab you only just opened would be silent. We remember it and let it out
+// on your first click — but not forever, so a much later click can't blare at you.
+let owedRing = null;
+const OWED_MS = 5 * 60 * 1000;
+
+// Ring right now if we can. Returns false only when we wanted to ring and couldn't —
+// the caller uses that to make the notification make a noise instead.
+export function ringNow(name, repeats = 3) {
+  if (!store.state.settings.sound) return true;      // silence is the setting, not a failure
+  if ((name || store.state.settings.ringer) === 'silent') return true;
+  if (audioRunning()) { playRinger(name, repeats); return true; }
+  try { ac(); } catch { /* no audio on this device at all */ }
+  owedRing = { name, repeats, at: Date.now() };
+  return false;
+}
+
+// Any interaction wakes the context, releases an owed ring, and lets the timer requeue.
+export function initAudioUnlock(onWake) {
+  const done = () => {
+    if (owedRing) {
+      const owed = owedRing;
+      owedRing = null;
+      if (Date.now() - owed.at < OWED_MS && audioRunning()) playRinger(owed.name, owed.repeats);
+    }
+    onWake?.();
+  };
+  const wake = () => {
+    if (!store.state.settings.sound) return; // sound off — don't spin up audio at all
+    if (!owedRing && audioRunning()) return;
+    let c;
+    try { c = ac(); } catch { return; }
+    if (c.state === 'running') done();
+    else c.resume().then(done, () => {});
+  };
+  for (const ev of ['pointerdown', 'keydown', 'touchstart']) {
+    addEventListener(ev, wake, { capture: true, passive: true });
+  }
+  // the context can also come back on its own (tab restored, device woken) — when it
+  // does, the timer wants to know so it can queue its ring again
+  try { if (store.state.settings.sound) ac().addEventListener('statechange', () => onWake?.()); } catch { /* fine */ }
 }
 
 function noiseSource(c, color = 'white') {

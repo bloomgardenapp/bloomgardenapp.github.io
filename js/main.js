@@ -2,7 +2,7 @@
 import { el, fmtClock, todayYmd, levelForXp, parseQuickLog, guessIcon } from './util.js';
 import { store, uid, nextColor } from './store.js';
 import { toast, openModal, confirmDialog } from './ui.js';
-import { sfx, RINGERS, playRinger, syncMusic, musicPlaying } from './audio.js';
+import { sfx, RINGERS, playRinger, syncMusic, musicPlaying, initAudioUnlock } from './audio.js';
 import { streak, logSession, checkKeepsakes } from './progress.js';
 import { ic, svgStr } from './icons.js';
 import { startTour } from './tour.js';
@@ -14,7 +14,7 @@ import * as calendar from './views/calendar.js';
 import * as notes from './views/notes.js';
 import * as focus from './views/focus.js';
 import * as garden from './views/garden.js';
-import { checkTimer, timerRemaining, toggleZen } from './views/focus.js';
+import { checkTimer, timerRemaining, toggleZen, syncAlarm } from './views/focus.js';
 
 const VIEWS = { today, calendar, notes, focus, garden };
 const NAV = [
@@ -546,6 +546,7 @@ store.subscribe(() => {
 // ---------- global tick: timer completion + chip + tab title ----------
 setInterval(() => {
   checkTimer();
+  syncAlarm(); // no-op unless the session changed — keeps the queued ring honest
   const t = store.state.timer;
   if (t) {
     const rem = fmtClock(timerRemaining());
@@ -560,6 +561,15 @@ setInterval(() => {
     if (document.title !== 'Bloom') document.title = 'Bloom';
   }
 }, 500);
+
+// ---------- coming back ----------
+// This tick is throttled to roughly once a minute in a background tab and stops dead
+// while the machine sleeps, so the moment Bloom is looked at again we settle up: finish
+// anything that ran out while we were away, and requeue the ring for what's still going.
+const catchUp = () => { checkTimer(); syncAlarm(); };
+document.addEventListener('visibilitychange', () => { if (!document.hidden) catchUp(); });
+addEventListener('focus', catchUp);
+addEventListener('pageshow', catchUp);
 
 // ---------- keyboard shortcuts ----------
 addEventListener('keydown', (e) => {
@@ -600,6 +610,7 @@ else {
     else { store.state.settings.onboarded = true; store.save(true); }
   }, { once: true });
 }
+initAudioUnlock(syncAlarm); // first touch wakes the audio context — then the ring can be queued
 cloud.initCloud(); // account + sync, if configured
 initReminders(); // daily nudge to water the garden, if switched on
 syncMusic(); // gentle garden music, on by default (starts after first click per browser rules)

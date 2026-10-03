@@ -21,6 +21,18 @@ self.addEventListener('activate', (e) => {
   );
 });
 
+// Timer notifications are posted through this worker so they persist in the OS
+// notification centre — tapping one brings Bloom back rather than opening a new tab.
+self.addEventListener('notificationclick', (e) => {
+  e.notification.close();
+  e.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((list) => {
+      for (const c of list) if ('focus' in c) return c.focus();
+      return self.clients.openWindow ? self.clients.openWindow('./') : undefined;
+    }),
+  );
+});
+
 self.addEventListener('fetch', (e) => {
   const { request } = e;
   if (request.method !== 'GET') return;

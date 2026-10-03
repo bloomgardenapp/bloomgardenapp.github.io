@@ -2,7 +2,7 @@
 import { el, fmtClock, fmtMin, fmtDateShort, todayYmd, levelForXp } from '../util.js';
 import { store } from '../store.js';
 import { toast, confirmDialog } from '../ui.js';
-import { sfx } from '../audio.js';
+import { sfx, scheduleSound, scheduleRinger, ringNow } from '../audio.js';
 import { rain, burst } from '../confetti.js';
 import { skillById, logSession, minutesTotal, xpOf } from '../progress.js';
 import { openSkillEditor, skillSelect } from '../skillEditor.js';
@@ -38,12 +38,75 @@ export function checkTimer() {
   if (t && !t.pausedAt && timerRemaining() <= 0) completeTimer();
 }
 
-function notifyBG(title, body) {
+// when this phase runs out, in wall-clock ms
+function endsAt(t) { return t.startedAt + t.pausedTotal + t.durationSec * 1000; }
+
+// ---------- the ring, queued before it's needed ----------
+// The 500ms tick in main.js is throttled to about once a minute in a background tab
+// and stops altogether while the machine sleeps, so it can't be what makes the noise.
+// Instead the ring is handed to the audio clock as soon as a phase starts and simply
+// goes off on time. syncAlarm keeps that queued ring matching the live session.
+let alarm = null;   // handle from audio.js, or null when nothing is queued
+let alarmKey = '';  // what `alarm` was queued for, so the tick doesn't requeue endlessly
+
+function alarmKeyFor(t) {
+  if (!t || t.pausedAt || !store.state.settings.sound) return '';
+  return [t.startedAt, t.pausedTotal, t.durationSec, t.phase || 'work', t.mode, store.state.settings.ringer].join('|');
+}
+
+export function syncAlarm() {
+  const t = store.state.timer;
+  const key = alarmKeyFor(t);
+  if (key === alarmKey && (!key || alarm)) return;
+  alarm?.cancel();
+  alarm = null;
+  alarmKey = key;
+  if (!key) return;
+  const rem = timerRemaining();
+  // a cycle's break rolls straight into the next round, so it gets the little start
+  // cue rather than the alarm — everything else that ends is a real ring
+  const rolls = (t.phase || 'work') === 'break' && t.mode === 'cycle';
+  alarm = rolls
+    ? scheduleSound(rem, () => sfx.start(), checkTimer)
+    : scheduleRinger(rem, { onFire: checkTimer });
+  if (!alarm) alarmKey = ''; // audio still locked — have another go on the next nudge
+}
+
+// Silence anything still queued. Returns true when the sound had already gone off,
+// which is how completeTimer knows it doesn't need to make the noise itself.
+function takeAlarm() {
+  const rang = alarm ? alarm.cancel() : false;
+  alarm = null;
+  alarmKey = '';
+  return rang;
+}
+
+// The one thing that can still reach you in another app. Service-worker notifications
+// stick around in the OS notification centre, so prefer those; `loud` lets the system
+// make the sound when our own ring couldn't (tab asleep, audio not unlocked yet).
+function notifyBG(title, body, { loud = false, always = false } = {}) {
   try {
-    if (document.hidden && 'Notification' in window && Notification.permission === 'granted') {
-      new Notification(title, { body, silent: true, tag: 'bloom-timer' });
-    }
+    // a tab can be "visible" while its whole window sits behind another app, which is
+    // exactly when you most need telling — so look at focus, not just visibility
+    const looking = !document.hidden && document.hasFocus();
+    if (!always && looking) return;
+    if (!('Notification' in window) || Notification.permission !== 'granted') return;
+    const opts = {
+      body, tag: 'bloom-timer', renotify: true, requireInteraction: true, silent: !loud,
+      icon: 'icons/icon-192.png', badge: 'icons/icon-192.png',
+    };
+    const reg = navigator.serviceWorker?.getRegistration?.();
+    Promise.resolve(reg || null)
+      .then((r) => { if (!r?.showNotification) throw new Error('no sw'); return r.showNotification(title, opts); })
+      .catch(() => { try { new Notification(title, opts); } catch { /* fine */ } });
   } catch { /* notifications unavailable — fine */ }
+}
+
+// how long ago this should have gone off — only worth saying when we're properly late
+function lateNote(t) {
+  const late = Math.round((Date.now() - endsAt(t)) / 1000);
+  if (late < 90) return '';
+  return ` (ended ${fmtMin(late / 60)} ago)`;
 }
 
 export function completeTimer() {
@@ -51,15 +114,18 @@ export function completeTimer() {
   if (!t) return;
   const sk = skillById(t.skillId);
   const name = sk ? sk.name : 'focus';
+  // the queued ring is the ring — only make the noise here if it hasn't already
+  const rang = takeAlarm();
+  const late = lateNote(t);
 
   if ((t.phase || 'work') === 'break') {
     if (t.mode !== 'cycle') {
       // standalone break (the Break tab) — just ends, nothing to log
       store.state.timer = null;
       document.title = 'Bloom';
-      sfx.alarm();
-      notifyBG('Break over', 'Fresh and ready to grow.');
-      toast('Break over — fresh and ready', 'leaf');
+      const heard = rang || ringNow(null, 3);
+      notifyBG('Break over', `Fresh and ready to grow.${late}`, { loud: !heard });
+      toast(`Break over — fresh and ready${late}`, 'leaf');
       store.save();
       return;
     }
@@ -70,9 +136,10 @@ export function completeTimer() {
       mode: 'cycle', phase: 'work', round,
       startedAt: Date.now(), pausedAt: null, pausedTotal: 0,
     };
-    sfx.start();
-    notifyBG(`Round ${round} — back to ${name}`, 'Break’s over. You’ve got this.');
+    if (!rang) sfx.start();
+    notifyBG(`Round ${round} — back to ${name}`, `Break’s over. You’ve got this.${late}`, { loud: !rang });
     toast(`Round ${round} — back to ${name}`, 'sprout');
+    syncAlarm(); // queue the next round's ring straight away
     store.save();
     return;
   }
@@ -80,25 +147,34 @@ export function completeTimer() {
   // work session done
   const minutes = Math.max(1, Math.round(t.durationSec / 60));
   const skillId = t.skillId;
+  const heard = rang || ringNow(null, 3);
   if (t.mode === 'cycle') {
     store.state.timer = {
       skillId: t.skillId, durationSec: t.breakSec, workSec: t.workSec, breakSec: t.breakSec,
       mode: 'cycle', phase: 'break', round: t.round || 1,
       startedAt: Date.now(), pausedAt: null, pausedTotal: 0,
     };
-    notifyBG('Session complete', `${sk ? `+${minutes}m to ${name}` : `${minutes}m of focus done`} — ${Math.round(t.breakSec / 60)} minute break now`);
+    notifyBG('Session complete', `${sk ? `+${minutes}m to ${name}` : `${minutes}m of focus done`} — ${Math.round(t.breakSec / 60)} minute break now${late}`, { loud: !heard });
+    syncAlarm(); // queue the break's ring straight away
   } else {
     store.state.timer = null;
     document.title = 'Bloom';
-    notifyBG('Session complete', sk ? `+${minutes}m to ${name} — lovely work.` : 'Lovely work.');
+    notifyBG('Session complete', `${sk ? `+${minutes}m to ${name} — lovely work.` : 'Lovely work.'}${late}`, { loud: !heard });
   }
-  sfx.alarm();
   rain();
   if (sk) logSession({ skillId, minutes, source: 'timer' }); // saves + notifies + level-up celebration
-  else { toast('Timer done — lovely work', 'hourglass'); store.save(); }
+  else { toast(`Timer done — lovely work${late}`, 'hourglass'); store.save(); }
 }
 
 export function setFocusSkill(id) { selSkillId = id; }
+
+// asked from inside a click, so the browser accepts it — a notification is the only
+// thing that can still reach you once Bloom is behind another window
+function askNotify() {
+  if ('Notification' in window && Notification.permission === 'default') {
+    Notification.requestPermission().catch(() => {});
+  }
+}
 
 function startTimer(skillId, minutes) {
   const workSec = Math.round(minutes * 60);
@@ -108,10 +184,9 @@ function startTimer(skillId, minutes) {
     startedAt: Date.now(), pausedAt: null, pausedTotal: 0,
   };
   sfx.start();
-  if ('Notification' in window && Notification.permission === 'default') {
-    Notification.requestPermission().catch(() => {});
-  }
+  askNotify();
   store.save();
+  syncAlarm(); // queue the ring now, inside the click that's allowed to wake the audio
 }
 
 // Tabs live on both the setup card and the running timer. Switching away from a
@@ -126,6 +201,7 @@ function switchTab(target) {
   document.title = 'Bloom';
   if (mins >= 1) { sfx.chime(); logSession({ skillId, minutes: mins, source: 'timer' }); }
   else store.save();
+  syncAlarm(); // nothing running now — drop the queued ring
 }
 
 function makeTabs(active) {
@@ -145,7 +221,9 @@ function startBreak(minutes) {
     startedAt: Date.now(), pausedAt: null, pausedTotal: 0,
   };
   sfx.start();
+  askNotify();
   store.save();
+  syncAlarm();
 }
 
 function togglePause() {
@@ -155,6 +233,7 @@ function togglePause() {
   else t.pausedAt = Date.now();
   sfx.click();
   store.save();
+  syncAlarm(); // pausing drops the queued ring; resuming queues a fresh one
 }
 
 function skipBreak() {
@@ -172,6 +251,7 @@ async function endEarly({ discardable } = {}) {
     store.state.timer = null;
     document.title = 'Bloom';
     store.save();
+    syncAlarm();
     toast(t.mode === 'cycle' ? 'Cycle ended — well grown' : 'Break ended', 'leaf');
     return;
   }
@@ -189,6 +269,7 @@ async function endEarly({ discardable } = {}) {
   document.title = 'Bloom';
   if (elapsedMin >= 1) { sfx.chime(); logSession({ skillId, minutes: elapsedMin, source: 'timer' }); }
   else store.save();
+  syncAlarm();
 }
 
 
