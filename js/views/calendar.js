@@ -154,6 +154,16 @@ function dayPanel(rr) {
     void input.offsetWidth; // restart the nudge animation
     input.classList.add('invalid');
   };
+  // Send her to the field that needs fixing without yanking the page about. A bare
+  // focus() makes the browser snap the page to it in one instant hop — which, with the
+  // form below the fold, reads as the whole page jumping while the field shakes. So we
+  // focus without scrolling, and glide only when the field really is out of sight.
+  const pointAt = (input) => {
+    flash(input);
+    input.focus({ preventScroll: true });
+    const r = input.getBoundingClientRect();
+    if (r.top < 8 || r.bottom > innerHeight - 8) input.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  };
   const titleIn = el('input', {
     class: 'input', id: 'event-title-in', placeholder: editing ? 'Event title' : '＋ Add an event…',
     value: editing ? editing.title : eventDraft.title,
@@ -312,35 +322,31 @@ function dayPanel(rr) {
 
   async function submit() {
     const title = titleIn.value.trim();
-    if (!title) { sfx.uhoh(); flash(titleIn); titleIn.focus(); return; }
+    if (!title) { sfx.uhoh(); pointAt(titleIn); return; }
     const time = timeValue();
     if (time === undefined) {
       sfx.uhoh();
-      flash(timeIn);
       toast(h24 ? 'Try a time like 19:30 — or leave it blank' : 'Try a time like 7:30 — or leave it blank', 'clock');
-      timeIn.focus();
+      pointAt(timeIn);
       return;
     }
     const timeEnd = endValue(time);
     if (timeEnd === undefined) {
       sfx.uhoh();
-      flash(endIn);
       toast(h24 ? 'Try an end time like 21:00 — or leave it blank' : 'Try an end time like 8:30 — or leave it blank', 'clock');
-      endIn.focus();
+      pointAt(endIn);
       return;
     }
     if (timeEnd && !time) {
       sfx.uhoh();
-      flash(timeIn);
       toast('Add a start time to go with the end time', 'clock');
-      timeIn.focus();
+      pointAt(timeIn);
       return;
     }
     if (timeEnd && timeEnd <= time) {
       sfx.uhoh();
-      flash(endIn);
       toast('The end time needs to come after the start', 'clock');
-      endIn.focus();
+      pointAt(endIn);
       return;
     }
     const repeat = repeatSel.value || null;
