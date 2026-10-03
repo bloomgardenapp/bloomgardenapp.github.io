@@ -14,13 +14,50 @@ let viewM = now.getMonth();
 let selected = todayYmd();
 let editingId = null;
 let dayMode = 'list'; // 'list' | 'plan' — how the day panel shows events (survives rerenders)
-let gridScroll = null, gridScrollDay = null; // timeline scroll position, kept across rerenders
+let planScroll = null; // where the timeline is parked — kept across days and redraws, so the hours never lurch
+let panelEl = null;    // the live .day-panel node, so picking a day can swap it alone
+
+// Work that needs a node to already be in the document (setting a scroll offset).
+// Queued while building, run the instant it's appended — same task, so the browser
+// never gets a chance to paint the half-finished state.
+const onMount = [];
+function flushMount() { while (onMount.length) onMount.shift()(); }
+
+// read the live timeline offset before we throw its node away
+function rememberPlanScroll() {
+  const sc = panelEl && panelEl.isConnected ? panelEl.querySelector('.day-grid-scroll') : null;
+  if (sc) planScroll = sc.scrollTop;
+}
+// A save redraws the whole view from main.js. That listener runs synchronously, while the
+// old timeline is still in the document — the last moment its offset can be read.
+store.subscribe(rememberPlanScroll);
+
+// Picking a day only changes the day panel — the month grid stays put.
+function rerenderDay() {
+  if (!panelEl || !panelEl.isConnected) return;
+  rememberPlanScroll();
+  const next = dayPanel(rerenderDay);
+  panelEl.replaceWith(next);
+  panelEl = next;
+  flushMount();
+}
+
+// Narrow screens stack the panel under the grid — bring it up, but only if it isn't already there
+function revealPanel() {
+  const p = document.querySelector('.day-panel');
+  if (!p) return;
+  const top = p.getBoundingClientRect().top;
+  if (top >= 0 && top < innerHeight * 0.5) return; // she's already looking at it
+  p.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
 
 // a save from inside the timeline shouldn't fling the page back to the top
 function saveKeepScroll() {
   const y = window.scrollY;
   store.save();
-  setTimeout(() => window.scrollTo(0, y), 0);
+  // the redraw keeps our place by itself now; only step in if something still drifted,
+  // because a needless scrollTo one frame later is its own little jolt
+  setTimeout(() => { if (window.scrollY !== y) window.scrollTo(0, y); }, 0);
 }
 const eventDraft = { title: '', time: '', ampm: 'pm', color: '#D89B8A', important: false };
 
@@ -69,13 +106,17 @@ function monthGrid(rr) {
       dataset: { date: dY },
       'aria-label': fmtDate(dY) + (bits.length ? ' — ' + bits.join(', ') : ''),
       title: bits.join(' · '),
-      onClick: () => {
+      onClick: (e) => {
         selected = dY;
         editingId = null;
-        if (other) { viewY = d.getFullYear(); viewM = d.getMonth(); }
         sfx.click();
-        rr();
-        if (innerWidth <= 1060) setTimeout(() => document.querySelector('.day-panel')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 60);
+        if (other) { viewY = d.getFullYear(); viewM = d.getMonth(); rr(); } // stepped into a new month — the grid changes too
+        else {
+          // same month: move the ring, redraw the panel. The grid itself never blinks.
+          for (const c of e.currentTarget.parentNode.children) c.classList.toggle('selected', c.dataset.date === dY);
+          rerenderDay();
+        }
+        if (innerWidth <= 1060) revealPanel();
       },
     },
       el('div', { class: 'cal-cell-top' },
@@ -577,16 +618,16 @@ function dayPanel(rr) {
         }, (ev.important ? '★ ' : '') + ev.title + ' · all day'))) : null,
       el('div', { class: 'day-grid-scroll' }, grid),
     );
-    // open where she left off; first visit of a day opens on its first event (or 8am)
-    setTimeout(() => {
-      const sc = wrap.querySelector('.day-grid-scroll');
-      if (gridScrollDay === selected && gridScroll != null) sc.scrollTop = gridScroll;
-      else {
-        const first = timed.length ? timed[0].start : 8 * 60;
-        sc.scrollTop = Math.max(0, ((first - startH * 60) / 60) * HOUR_PX - 24);
-      }
-      sc.addEventListener('scroll', () => { gridScroll = sc.scrollTop; gridScrollDay = selected; });
-    }, 30);
+    // The hours stay exactly where she left them — switching days swaps the blocks, never the view.
+    // Only the very first open picks a spot: her first event of the day, or 8am.
+    const sc = wrap.querySelector('.day-grid-scroll');
+    if (planScroll == null) {
+      const first = timed.length ? timed[0].start : 8 * 60;
+      planScroll = Math.max(0, ((first - startH * 60) / 60) * HOUR_PX - 24);
+    }
+    // set once it's in the document, before the first paint — no flash of midnight
+    onMount.push(() => { sc.scrollTop = planScroll; });
+    sc.addEventListener('scroll', () => { planScroll = sc.scrollTop; });
     return wrap;
   }
 
@@ -654,7 +695,14 @@ function dayPanel(rr) {
 }
 
 export function render(root) {
-  const rr = () => { root.innerHTML = ''; render(root); };
+  const rr = () => {
+    const y = window.scrollY;
+    rememberPlanScroll();
+    root.innerHTML = '';
+    render(root);
+    window.scrollTo(0, y); // a redraw is no reason to lose your place on the page
+  };
+  panelEl = dayPanel(rerenderDay);
   root.append(
     el('div', { class: 'view-head' },
       el('div', {},
@@ -664,7 +712,8 @@ export function render(root) {
     ),
     el('div', { class: 'cal-wrap', style: { marginTop: '20px' } },
       el('div', { class: 'card' }, monthGrid(rr)),
-      dayPanel(rr),
+      panelEl,
     ),
   );
+  flushMount();
 }

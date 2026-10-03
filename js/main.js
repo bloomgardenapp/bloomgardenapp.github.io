@@ -519,10 +519,18 @@ function renderView(animate = false) {
   clearTimeout(animTimeout);
   viewEl.className = animate ? 'view-anim' : '';
   if (animate) animTimeout = setTimeout(() => { viewEl.className = ''; }, 750);
+  // Hold the view's height across the swap. Emptying it collapses the document, the
+  // browser clamps the scroll to the new (tiny) height, and putting it back is a visible
+  // lurch — worse, that correction cancels any smooth scroll still gliding, so adding an
+  // event mid-glide used to strand the page halfway to the form.
+  viewEl.style.minHeight = `${viewEl.offsetHeight}px`;
   viewEl.innerHTML = '';
   VIEWS[currentView].render(viewEl);
+  viewEl.style.minHeight = '';
   updateSidebarBits();
-  if (!animate) window.scrollTo(0, scrollY);
+  // only correct it if the swap actually moved us — an unnecessary scrollTo would stop
+  // a smooth scroll dead
+  if (!animate && window.scrollY !== scrollY) window.scrollTo(0, scrollY);
 }
 function route() {
   const name = (location.hash || '#/today').replace(/^#\//, '') || 'today';
