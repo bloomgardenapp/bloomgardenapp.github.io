@@ -480,9 +480,17 @@ function dayPanel(rr) {
     for (const t of timed) {
       const gap = 8;
       const dur = t.end - t.start;
-      const timeLabel = el('span', { class: 'dg-ev-time' }, `${fmtTime(t.ev.time, h24v)}${t.ev.timeEnd ? ` – ${fmtTime(t.ev.timeEnd, h24v)}` : ''}`);
+      // Half an hour is one line tall, and two stacked lines meant the name lost to the
+      // clock. The name is the point, so a short block turns into a single row with the
+      // time tucked in beside it — where the block sits already says when it is, so the
+      // end time is the thing worth dropping.
+      const tight = (dur / 60) * HOUR_PX - 2 < 36;
+      const stamp = (from, to) => (tight || !t.ev.timeEnd
+        ? fmtTime(from, h24v)
+        : `${fmtTime(from, h24v)} – ${fmtTime(to, h24v)}`);
+      const timeLabel = el('span', { class: 'dg-ev-time' }, stamp(t.ev.time, t.ev.timeEnd));
       const blk = el('button', {
-        class: 'dg-ev' + (t.ev.important ? ' imp' : ''),
+        class: 'dg-ev' + (t.ev.important ? ' imp' : '') + (tight ? ' tight' : ''),
         style: {
           top: `${((t.start - startH * 60) / 60) * HOUR_PX + 1}px`,
           height: `${Math.max(22, (dur / 60) * HOUR_PX - 2)}px`,
@@ -517,7 +525,7 @@ function dayPanel(rr) {
         let cand = Math.round((startH * 60 + (top / HOUR_PX) * 60) / 15) * 15;
         cand = Math.max(0, Math.min(cand, 24 * 60 - dur));
         drag.cand = cand;
-        timeLabel.textContent = `${fmtTime(mm2hhmm(cand), h24v)}${t.ev.timeEnd ? ` – ${fmtTime(mm2hhmm(cand + dur), h24v)}` : ''}`;
+        timeLabel.textContent = stamp(mm2hhmm(cand), mm2hhmm(cand + dur));
       };
       const scrollLoop = () => {
         if (!drag) return;
