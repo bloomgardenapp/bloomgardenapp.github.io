@@ -480,7 +480,9 @@ final class AppStore: ProgressQueries {
         checkTimer()
     }
 
-    /// End the running timer, logging elapsed work minutes (≥1) like the web.
+    /// End the running timer. Ending early forfeits the session — only a timer that
+    /// runs all the way out earns XP, so there's nothing to bank by bailing at minute 59.
+    /// (Diverges from the web, which logs the elapsed minutes.)
     func endEarly() {
         guard let t = state.timer else { return }
         if t.phase == "break" {
@@ -491,14 +493,14 @@ final class AppStore: ProgressQueries {
             return
         }
         let elapsedMin = Int(timerElapsedSec() / 60)
-        let skillId = t.skillId
+        let hasPlant = skill(t.skillId) != nil
         state.timer = nil
         LiveActivityController.shared.end()
-        if elapsedMin >= 1, let skillId {
-            Sfx.shared.chime()
-            logSession(skillId: skillId, minutes: elapsedMin, source: "timer")
+        save()
+        if hasPlant && elapsedMin >= 1 {
+            toast("Ended early — \(fmtMin(elapsedMin)) not logged", "hourglass")
         } else {
-            save()
+            toast("Timer ended", "hourglass")
         }
     }
 

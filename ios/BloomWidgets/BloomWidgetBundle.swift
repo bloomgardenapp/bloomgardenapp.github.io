@@ -1,5 +1,6 @@
-// BloomWidgetBundle.swift — the garden on your Home Screen, and the focus timer
-// in the Dynamic Island / Lock Screen while a session runs.
+// BloomWidgetBundle.swift — the garden and today's tasks on your Home Screen, and the
+// focus timer in the Dynamic Island / Lock Screen while a session runs.
+// The tasks widget lives in TasksWidget.swift.
 import WidgetKit
 import SwiftUI
 
@@ -7,13 +8,14 @@ import SwiftUI
 struct BloomWidgetBundle: WidgetBundle {
     var body: some Widget {
         GardenWidget()
+        TasksWidget()
         FocusLiveActivity()
     }
 }
 
 // MARK: - Bloom-flavored colors/fonts for widget surfaces
 
-private enum W {
+enum W {
     static let cream = Color(hex: "#F4F0E2")
     static let creamCard = Color(hex: "#FFFDF4")
     static let darkCard = Color(hex: "#211F1C")
@@ -217,7 +219,7 @@ struct LockScreenFocusView: View {
                          : "Growing \(context.attributes.skillName)")
                         .font(W.bold(14))
                         .foregroundColor(W.inkStrong)
-                    Text(context.state.paused ? "paused" : (context.state.phase == "break" ? "back to it soon" : "every minute = 1 XP"))
+                    Text(context.state.paused ? "paused" : (context.state.phase == "break" ? "back to it soon" : "finish it to earn the XP"))
                         .font(W.body(11))
                         .foregroundColor(W.muted)
                 }

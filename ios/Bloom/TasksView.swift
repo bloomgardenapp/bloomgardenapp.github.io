@@ -1,5 +1,6 @@
-// TasksView.swift — task rows + add form. Today / Someday sections, plant filter,
-// done-today drawer. Tasks give no XP — only focused time grows plants.
+// TasksView.swift — task rows + add form. One list for the day (due today, still
+// open from earlier, undated), plant filter, done-today drawer. Later-dated tasks
+// live on their day in the calendar. Tasks give no XP — only focused time grows plants.
 import SwiftUI
 
 struct TaskRow: View {
@@ -87,10 +88,11 @@ struct TasksView: View {
             if (a.due ?? "9999") != (b.due ?? "9999") { return (a.due ?? "9999") < (b.due ?? "9999") }
             return a.createdAt < b.createdAt
         }
-        let dueToday = open.filter { $0.due == today }.sorted(by: bySort)
-        let someday = open.filter { $0.due == nil }.sorted(by: bySort)
-        let upcoming = open.filter { ($0.due ?? "") > today }.sorted(by: bySort)
-        let overdue = open.filter { $0.due != nil && $0.due! < today }.sorted(by: bySort)
+        // This page is just the day's list: due today, still-open from earlier, and
+        // undated ("do it whenever") — no Late/Someday shelves. Future-dated tasks
+        // live on their own day in the calendar; addTask() already toasts to say so.
+        let forToday = open.filter { ($0.due ?? today) <= today }.sorted(by: bySort)
+        let laterCount = open.filter { ($0.due ?? today) > today }.count
 
         return ScrollView {
             VStack(alignment: .leading, spacing: 18) {
@@ -101,15 +103,13 @@ struct TasksView: View {
 
                 VStack(alignment: .leading, spacing: 10) {
                     if !store.state.skills.isEmpty { filterRow }
-                    if overdue.isEmpty && dueToday.isEmpty && someday.isEmpty && upcoming.isEmpty {
-                        EmptyState(icon: "leaf", text: filterSkill == nil
-                                   ? "Nothing to do — add your first task above!"
-                                   : "No open tasks for this plant.")
+                    if forToday.isEmpty {
+                        EmptyState(icon: "leaf", text: emptyText(laterCount: laterCount))
                     }
-                    section("Late", .overdue, overdue)
-                    section("Today", .dueToday, dueToday)
-                    section("Upcoming", .lilac, upcoming)
-                    section("Someday", .plain, someday)
+                    ForEach(forToday) { t in
+                        TaskRow(store: store, task: t, showDue: false)
+                    }
+                    if !forToday.isEmpty && laterCount > 0 { laterHint(laterCount) }
                     if !doneTasks.isEmpty { doneSection(doneTasks) }
                 }
                 .card()
@@ -129,17 +129,23 @@ struct TasksView: View {
         }
     }
 
-    @ViewBuilder private func section(_ label: String, _ style: ChipStyle, _ tasks: [TaskItem]) -> some View {
-        if !tasks.isEmpty {
-            HStack(spacing: 6) {
-                Chip(text: label, style: style)
-                Text("\(tasks.count)").font(.quicksandBold(12)).foregroundColor(theme.muted)
-            }
-            .padding(.top, 6)
-            ForEach(tasks) { t in
-                TaskRow(store: store, task: t, showDue: label != "Today")
-            }
+    private func emptyText(laterCount: Int) -> String {
+        if filterSkill != nil { return "No open tasks for this plant." }
+        if laterCount > 0 {
+            return laterCount == 1
+                ? "Nothing for today — 1 task is waiting on a later day."
+                : "Nothing for today — \(laterCount) tasks are waiting on later days."
         }
+        return "Nothing to do — add your first task above!"
+    }
+
+    /// Future-dated tasks aren't listed here; point at the calendar so they're findable.
+    private func laterHint(_ count: Int) -> some View {
+        Text(count == 1 ? "1 more waiting on a later day — see the calendar."
+                        : "\(count) more waiting on later days — see the calendar.")
+            .font(.quicksand(12))
+            .foregroundColor(theme.muted)
+            .padding(.top, 4)
     }
 
     private func doneSection(_ tasks: [TaskItem]) -> some View {

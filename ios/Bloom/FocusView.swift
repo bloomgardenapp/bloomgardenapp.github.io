@@ -78,20 +78,12 @@ struct FocusView: View {
         .background(Capsule().fill(theme.card2.opacity(0.7)))
     }
 
-    /// Web behavior: switching away from a running focus logs the elapsed minutes first.
+    /// Switching away from a running focus ends it — and that's an early end like any
+    /// other, so the unfinished minutes aren't logged.
     private func switchTab(_ target: String) {
         selTab = target
-        guard let t = store.state.timer else { return }
-        let mins = t.phase == "work" ? Int(store.timerElapsedSec() / 60) : 0
-        let skillId = t.skillId
-        store.state.timer = nil
-        LiveActivityController.shared.end()
-        if mins >= 1, let skillId {
-            Sfx.shared.chime()
-            store.logSession(skillId: skillId, minutes: mins, source: "timer")
-        } else {
-            store.save()
-        }
+        guard store.state.timer != nil else { return }
+        store.endEarly()
     }
 
     // MARK: setup
@@ -112,7 +104,7 @@ struct FocusView: View {
     private var focusSetup: some View {
         VStack(spacing: 12) {
             BloomTitle(prefix: "Grow some ", em: "focus", size: 21)
-            Text("Pick a plant, pick a time. Every focused minute becomes XP.")
+            Text("Pick a plant, pick a time. Run the timer out and every minute becomes XP.")
                 .font(.quicksand(13)).foregroundColor(theme.muted)
                 .multilineTextAlignment(.center)
 
@@ -306,18 +298,13 @@ struct FocusView: View {
                         }
                         .buttonStyle(PillButtonStyle())
 
+                        // no quick-finish during work: stopping early logs nothing now,
+                        // so ending goes through the confirming "End" button below
                         if onBreak {
                             Button {
                                 store.skipBreak()
                             } label: {
                                 HStack(spacing: 5) { Ic(name: "play", size: 12); Text("Skip break") }
-                            }
-                            .buttonStyle(PillButtonStyle(kind: .green))
-                        } else {
-                            Button {
-                                store.endEarly()
-                            } label: {
-                                HStack(spacing: 5) { Ic(name: "check", size: 12); Text(free ? "Finish" : "Finish & log") }
                             }
                             .buttonStyle(PillButtonStyle(kind: .green))
                         }
@@ -358,16 +345,17 @@ struct FocusView: View {
         if t.mode == "cycle" {
             return "round \(t.round) · \(fmtMin(Int(t.workSec / 60))) work + \(fmtMin(Int(t.breakSec / 60))) break, repeating"
         }
+        let mins = Int(t.durationSec / 60)
         return free
-            ? "\(fmtMin(Int(t.durationSec / 60))) timer · no plant — nothing gets logged"
-            : "\(fmtMin(Int(t.durationSec / 60))) session · every minute = 1 XP"
+            ? "\(fmtMin(mins)) timer · no plant — nothing gets logged"
+            : "\(fmtMin(mins)) session · finish it to earn \(mins) XP"
     }
 
     private func endMessage(_ t: TimerState, free: Bool) -> String {
         let elapsedMin = Int(store.timerElapsedSec() / 60)
         if free { return "End this timer? No plant selected, so nothing gets logged." }
-        if elapsedMin >= 1 { return "End this session early? Your \(fmtMin(elapsedMin)) still gets logged — no minute wasted." }
-        return "End this session? Nothing to log yet (under a minute)."
+        if elapsedMin >= 1 { return "End this session early? Your \(fmtMin(elapsedMin)) won't be logged — only a finished session grows your plant." }
+        return "End this session? Nothing gets logged."
     }
 
     // MARK: manual + history
