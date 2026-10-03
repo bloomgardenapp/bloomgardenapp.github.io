@@ -5,3 +5,6 @@
 # Xcode
 ios/**/xcuserdata/
 *.xcuserstate
+
+# Claude Code — machine-local permissions, not shared
+.claude/settings.local.json
