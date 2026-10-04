@@ -899,7 +899,10 @@ details.done-details summary:hover { color: var(--ink); }
   .nav-item { flex-direction: column; gap: 3px; padding: 7px 2px; font-size: 10px; flex: 1; text-align: center; margin: 0; justify-content: center; border-radius: 14px; }
   .nav-item .nav-emoji { width: auto; }
   .sidebar-foot { margin: 0; flex-direction: row; }
-  .cal-cell { aspect-ratio: auto; height: 64px; min-height: 0; padding: 6px; }
+  /* square-ish day boxes — 37 wide by 64 tall read as a column of bars, not a month.
+     The floor keeps the number and its dot row comfortable on the narrowest phones. */
+  .cal-grid { gap: 4px; }
+  .cal-cell { aspect-ratio: 1; height: auto; min-height: 40px; padding: 5px; border-radius: 11px; gap: 3px; }
   .cal-evs { flex-direction: row; gap: 4px; } /* narrow cells: events collapse to a tidy dot row */
   .cal-ev-t, .cal-more { display: none; }
   .timer-ring-wrap { width: 200px; height: 200px; }
