@@ -194,7 +194,10 @@ struct CalendarView: View {
                 Spacer(minLength: 0)
             }
             .padding(wide ? 7 : 4)
-            .frame(minHeight: wide ? 84 : 52, alignment: .top)
+            // phone cells sit ~42pt wide, so a 52pt floor made them visibly taller than
+            // they are wide — 44 lands them square, matching the web's day boxes. It's a
+            // floor, not a fixed height: a busy day still grows rather than clipping.
+            .frame(minHeight: wide ? 84 : 44, alignment: .top)
             // web .cal-cell: card-2 blocks on the card, whole cell fades when out of month,
             // today gets the olive-soft wash, selected gets the olive border
             .background(RoundedRectangle(cornerRadius: wide ? 14 : 9, style: .continuous)
