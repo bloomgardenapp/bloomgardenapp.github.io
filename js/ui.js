@@ -15,6 +15,27 @@ export function toast(msg, icon = 'sprout') {
   while (root.children.length > 4) root.firstChild.remove();
 }
 
+// ---- pinning the page under a modal ----
+// A fixed overlay doesn't stop the page scrolling behind it — on a phone the garden
+// drifts about under the sheet while you're reading it. iOS also ignores
+// overflow:hidden on the body, so the body is pinned with position:fixed at its current
+// offset and put back exactly where it was on the way out. Counted, because a confirm
+// can open on top of another modal and the first one to close mustn't free the page.
+let lockDepth = 0;
+let lockedY = 0;
+function lockPage() {
+  if (lockDepth++) return;
+  lockedY = window.scrollY;
+  document.body.style.top = `${-lockedY}px`;
+  document.documentElement.classList.add('modal-open');
+}
+function unlockPage() {
+  if (!lockDepth || --lockDepth) return;
+  document.documentElement.classList.remove('modal-open');
+  document.body.style.top = '';
+  window.scrollTo(0, lockedY);
+}
+
 export function openModal(content, { onClose, closable = true } = {}) {
   let closed = false;
   const modal = el('div', { class: 'modal card' });
@@ -31,9 +52,11 @@ export function openModal(content, { onClose, closable = true } = {}) {
     overlay.classList.remove('in');
     document.removeEventListener('keydown', esc);
     setTimeout(() => overlay.remove(), 210);
+    unlockPage();
     onClose?.();
   }
   document.addEventListener('keydown', esc);
+  lockPage();
   document.body.append(overlay);
   requestAnimationFrame(() => overlay.classList.add('in'));
   return close;

@@ -713,7 +713,11 @@ details.done-details summary:hover { color: var(--ink); }
   background: rgba(58, 66, 44, 0.4); backdrop-filter: blur(3px);
   display: flex; align-items: center; justify-content: center; padding: 20px;
   opacity: 0; transition: opacity 0.2s;
+  overscroll-behavior: contain; /* a scroll that runs out inside the sheet stays there */
 }
+/* while a modal is up the page is pinned (ui.js holds the offset and puts it back) */
+.modal-open, .modal-open body { overflow: hidden; }
+.modal-open body { position: fixed; left: 0; right: 0; width: 100%; }
 .modal-overlay.in { opacity: 1; }
 .modal { position: relative; width: 100%; max-width: 470px; max-height: 86vh; overflow: auto; padding: 26px 26px 24px; transform: translateY(12px) scale(0.98); transition: transform 0.22s cubic-bezier(0.5, 1.4, 0.6, 1); }
 .modal-overlay.in .modal { transform: none; }
