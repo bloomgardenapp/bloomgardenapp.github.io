@@ -654,8 +654,12 @@ details.done-details summary:hover { color: var(--ink); }
 /* plant book: species × stages; unreached stages are silhouettes */
 .book-row { display: flex; align-items: center; gap: 14px; padding: 10px 0 6px; border-top: 1px solid var(--line); }
 .book-name { width: 88px; flex-shrink: 0; font-weight: 800; font-size: 13.5px; display: flex; flex-direction: column; gap: 4px; align-items: flex-start; }
-.book-stages { display: flex; gap: 8px; flex: 1; justify-content: space-between; }
+/* min-width:0 or the row can't shrink past the art's natural width and the last plant
+   gets shoved off the edge of the sheet */
+.book-stages { display: flex; gap: 8px; flex: 1; min-width: 0; justify-content: space-between; }
 .book-stage { text-align: center; flex: 1; min-width: 0; }
+/* the art scales with its column rather than holding a fixed 52px */
+.book-art svg { display: block; width: 100%; max-width: 52px; height: auto; margin: 0 auto; }
 .book-stage-label { font-size: 10px; font-weight: 700; }
 .book-silhouette svg { filter: brightness(0) opacity(0.15); }
 [data-theme="dark"] .book-silhouette svg { filter: brightness(0) invert(1) opacity(0.22); }
@@ -822,6 +826,12 @@ details.done-details summary:hover { color: var(--ink); }
 .zen-label { font-family: var(--font-display); font-style: italic; font-size: 15px; color: var(--muted); text-align: center; }
 .zen-controls { position: fixed; bottom: 36px; display: flex; gap: 10px; opacity: 0; transition: opacity 0.3s; }
 .zen:hover .zen-controls, .zen:focus-within .zen-controls { opacity: 1; }
+/* a phone row hasn't room for a name column and four plants side by side — the name
+   takes its own line so the plants keep the sheet's full width, centred */
+@media (max-width: 560px) {
+  .book-row { flex-direction: column; align-items: stretch; gap: 8px; }
+  .book-name { width: auto; flex-direction: row; align-items: center; gap: 8px; }
+}
 @media (max-width: 760px) {
   .zen-stage { width: 300px; height: 300px; }
   .zen-time { font-size: 32px; }
