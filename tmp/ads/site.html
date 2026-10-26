@@ -1,0 +1,286 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Bloom — site card</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Shantell+Sans:ital,wght@0,300..800;1,300..800&family=Quicksand:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { width: 1000px; height: 1250px; overflow: hidden; }
+  body { font-family: 'Quicksand', system-ui, sans-serif; }
+  .card { position: relative; width: 1000px; height: 1250px; overflow: hidden; }
+
+  /* same background set as the feature cards, so the whole series reads as one account */
+  .bg-daisy {
+    background-color: #E7E3D6;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200' viewBox='0 0 200 200'%3E%3Cg fill='%23FBF9F2'%3E%3Cg transform='translate(42 40)'%3E%3Ccircle cx='0' cy='-19' r='15'/%3E%3Ccircle cx='18' cy='-6' r='15'/%3E%3Ccircle cx='11' cy='15' r='15'/%3E%3Ccircle cx='-11' cy='15' r='15'/%3E%3Ccircle cx='-18' cy='-6' r='15'/%3E%3Ccircle cx='0' cy='0' r='9' fill='%23E7E3D6'/%3E%3C/g%3E%3Cg transform='translate(150 130) scale(0.78)'%3E%3Ccircle cx='0' cy='-19' r='15'/%3E%3Ccircle cx='18' cy='-6' r='15'/%3E%3Ccircle cx='11' cy='15' r='15'/%3E%3Ccircle cx='-11' cy='15' r='15'/%3E%3Ccircle cx='-18' cy='-6' r='15'/%3E%3Ccircle cx='0' cy='0' r='9' fill='%23E7E3D6'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+  }
+  .bg-grid {
+    background-color: #F4F0E2;
+    background-image:
+      repeating-linear-gradient(0deg, rgba(96,108,62,0.10) 0 1.5px, transparent 1.5px 34px),
+      repeating-linear-gradient(90deg, rgba(96,108,62,0.10) 0 1.5px, transparent 1.5px 34px);
+  }
+  .bg-pastel {
+    background:
+      radial-gradient(900px 500px at 12% 4%, #F6E6DC 0%, transparent 62%),
+      radial-gradient(800px 600px at 92% 22%, #E9EDD6 0%, transparent 60%),
+      radial-gradient(900px 700px at 70% 102%, #F3E8D2 0%, transparent 62%),
+      #F7F3E8;
+  }
+  .bg-paper {
+    background-color: #F2EEE2;
+    background-image:
+      linear-gradient(118deg, rgba(255,255,255,0.75) 0%, transparent 28%),
+      linear-gradient(290deg, rgba(255,255,255,0.6) 0%, transparent 32%),
+      linear-gradient(32deg, rgba(150,145,120,0.09) 0%, transparent 22%),
+      linear-gradient(212deg, rgba(150,145,120,0.08) 0%, transparent 26%),
+      repeating-linear-gradient(0deg, rgba(120,120,95,0.055) 0 1px, transparent 1px 30px),
+      repeating-linear-gradient(90deg, rgba(120,120,95,0.055) 0 1px, transparent 1px 30px);
+  }
+  .bg-band { background: #EFEADA; }
+  .bg-band::before { content: ''; position: absolute; left: 0; right: 0; top: 0; height: 47%; background: #DCE2C1; }
+
+  .inner { position: relative; width: 100%; height: 100%; padding: 70px 70px 0; display: flex; flex-direction: column; align-items: center; text-align: center; }
+
+  .title { font-family: 'Shantell Sans', cursive; font-weight: 700; font-size: 72px; line-height: 1.02; color: #333B27; }
+  .title .dot { color: #C97F5F; }
+  .meta { font-family: 'Shantell Sans', cursive; font-style: italic; font-weight: 500; font-size: 26px; color: #7E8369; margin-top: 8px; }
+  p.body { margin-top: 24px; font-size: 24px; line-height: 1.68; font-weight: 500; color: #454C37; letter-spacing: 0.03em; max-width: 830px; }
+  p.body b { font-weight: 700; color: #3A422C; }
+
+  .media { margin-top: 38px; display: flex; align-items: flex-end; justify-content: center; gap: 26px; }
+
+  /* a browser window, because this is a site and not an app-store download */
+  .browser { border-radius: 16px; overflow: hidden; background: #DAD6C6; box-shadow: 0 32px 60px -30px rgba(40,46,28,0.55); }
+  .bar { height: 38px; display: flex; align-items: center; gap: 8px; padding: 0 14px; background: #E4E0D0; }
+  .bar i { width: 11px; height: 11px; border-radius: 50%; display: block; }
+  .bar .u {
+    flex: 1; margin-left: 10px; height: 22px; border-radius: 11px; background: #F3F0E4;
+    font-family: 'Quicksand'; font-size: 12px; font-weight: 700; color: #8F937D;
+    display: flex; align-items: center; justify-content: center; letter-spacing: 0.02em;
+  }
+  .bview { overflow: hidden; background: #F4F0E2; }
+  .bview iframe { border: 0; display: block; width: 1340px; height: 870px; transform-origin: top left; }
+
+  /* phones, singly or in a row */
+  .phone { background: #23271C; border-radius: 34px; padding: 8px; box-shadow: 0 24px 46px -24px rgba(40,46,28,0.5); }
+  .screen { border-radius: 27px; overflow: hidden; background: #F4F0E2; }
+  .screen iframe { border: 0; display: block; width: 390px; height: 844px; transform-origin: top left; }
+
+  .trio .phone { width: 242px; height: 506px; }
+  .trio .screen { width: 226px; height: 490px; }
+  .trio .screen iframe { transform: scale(0.5795); }
+  .trio .phone:nth-child(2) { margin-bottom: 34px; }
+
+  .duo .browser { width: 660px; }
+  .duo .bview { width: 660px; height: 428px; }
+  .duo .bview iframe { transform: scale(0.4925); }
+  .duo .phone { width: 212px; height: 444px; }
+  .duo .screen { width: 196px; height: 428px; }
+  .duo .screen iframe { transform: scale(0.5026); }
+
+  .solo .browser { width: 858px; }
+  .solo .bview { width: 858px; height: 556px; }
+  .solo .bview iframe { transform: scale(0.6403); }
+
+  .handle {
+    position: absolute; left: 0; right: 0; bottom: 34px;
+    display: flex; align-items: center; justify-content: center; gap: 11px;
+    font-family: 'Shantell Sans', cursive; font-weight: 600; font-size: 23px; color: #6E7358;
+  }
+</style>
+</head>
+<body>
+<div class="card" id="card">
+  <div class="inner">
+    <div class="title">bloom<span class="dot">.</span></div>
+    <div class="meta" id="meta"></div>
+    <div id="paras"></div>
+    <div class="media" id="media"></div>
+  </div>
+  <div class="handle">
+    <svg width="26" height="26" viewBox="0 0 24 24"><circle cx="12" cy="5.4" r="3.6" fill="#8FA35E"/><circle cx="12" cy="18.6" r="3.6" fill="#8FA35E"/><circle cx="5.4" cy="12" r="3.6" fill="#8FA35E"/><circle cx="18.6" cy="12" r="3.6" fill="#8FA35E"/><circle cx="12" cy="12" r="3.3" fill="#E0B54F"/></svg>
+    <span id="handle"></span>
+  </div>
+</div>
+
+<script>
+const SITE = 'bloomgarden.study';
+
+// Scroll helpers reused across cards. Each returns a function run once the app has settled.
+const toPlanner = (w) => {
+  const b = [...w.document.querySelectorAll('button')].find((x) => /day planner/i.test(x.textContent));
+  if (b && !b.classList.contains('sel')) b.click();
+  return () => {
+    w.document.querySelector('.day-panel')?.scrollIntoView({ block: 'start' });
+    const sc = w.document.querySelector('.day-grid-scroll');
+    if (sc) sc.scrollTop = 8 * 48 - 10;
+  };
+};
+const toTop = () => () => window.scrollTo(0, 0);
+
+const CARDS = {
+  everything: {
+    bg: 'bg-daisy', kind: 'solo',
+    meta: 'the whole thing, in one tab',
+    paras: [
+      'Tasks, a calendar, notes, a focus timer and a garden — all in one place, all feeding each other. Tick something off or log an hour and the same garden grows.',
+      '<b>It is a website</b>, so there is nothing to install. Open the link and you are already using it.',
+    ],
+    screens: [{ route: '#/today', prep: toTop }],
+  },
+  devices: {
+    bg: 'bg-pastel', kind: 'duo',
+    meta: 'laptop & phone, one garden',
+    paras: [
+      'Plan on your laptop at your desk, then check it on your phone between classes. Sign in with just an email and the same garden follows you to both.',
+      'No app to download on either one, and nothing to keep in sync by hand.',
+    ],
+    screens: [{ route: '#/calendar', prep: toTop }, { route: '#/garden', prep: () => () => {} }],
+  },
+  tour: {
+    bg: 'bg-grid', kind: 'trio',
+    meta: 'a quick look round',
+    paras: [
+      'Plan the day hour by hour, start a focus session on whatever you are studying, and watch the plant for it grow taller. Five little sections sitting on top of one garden.',
+    ],
+    screens: [
+      { route: '#/calendar', prep: toPlanner },
+      { route: '#/focus', prep: () => () => {} },
+      { route: '#/garden', prep: () => () => {} },
+    ],
+  },
+  free: {
+    bg: 'bg-paper', kind: 'solo',
+    meta: 'free, properly free',
+    paras: [
+      'No subscription, no trial that runs out, no locked features and no ads. Everything you can see is free — including the hour-by-hour day planner other apps charge for.',
+      'You do not even need an account. Sign in with an email only if you want it on more than one device.',
+    ],
+    screens: [{ route: '#/calendar', prep: toPlanner }],
+  },
+  sections: {
+    bg: 'bg-band', kind: 'trio',
+    meta: 'tasks · notes · calendar',
+    paras: [
+      'Your day and your week as a simple list, notes that link to the subject they belong to, and a month view where classes, deadlines and focus sessions all land together.',
+    ],
+    screens: [
+      { route: '#/today', prep: toTop },
+      { route: '#/notes', prep: () => () => {} },
+      { route: '#/calendar', prep: toTop },
+    ],
+  },
+};
+
+const key = new URLSearchParams(location.search).get('v') || 'everything';
+const card = CARDS[key] || CARDS.everything;
+
+document.getElementById('card').classList.add(card.bg);
+document.getElementById('meta').textContent = card.meta;
+document.getElementById('paras').innerHTML = card.paras.map((p) => `<p class="body">${p}</p>`).join('');
+document.getElementById('handle').textContent = SITE;
+
+const media = document.getElementById('media');
+media.classList.add(card.kind);
+
+function browserEl() {
+  const d = document.createElement('div');
+  d.className = 'browser';
+  d.innerHTML = `<div class="bar"><i style="background:#D99B8A"></i><i style="background:#E0B54F"></i><i style="background:#8FA35E"></i><div class="u">${SITE}</div></div><div class="bview"><iframe scrolling="no"></iframe></div>`;
+  return d;
+}
+function phoneEl() {
+  const d = document.createElement('div');
+  d.className = 'phone';
+  d.innerHTML = '<div class="screen"><iframe scrolling="no"></iframe></div>';
+  return d;
+}
+
+// solo/free = one browser; duo = browser + phone; trio = three phones
+const nodes = card.kind === 'solo' ? [browserEl()]
+  : card.kind === 'duo' ? [browserEl(), phoneEl()]
+  : [phoneEl(), phoneEl(), phoneEl()];
+nodes.forEach((n) => media.appendChild(n));
+
+function seedDemo() {
+  const iso = (d) => d.toISOString().slice(0, 10);
+  const day = (n) => { const x = new Date(); x.setDate(x.getDate() + n); return iso(x); };
+  const T = day(0);
+  const now = new Date().toISOString();
+  const skill = (id, name, icon, color, species) => ({ id, name, icon, color, species, createdAt: new Date(Date.now() - 80 * 864e5).toISOString() });
+  const skills = [
+    skill('chemistry', 'Chemistry', 'flask', '#8FA9C9', 'fern'),
+    skill('math', 'Math', 'calc', '#8FA35E', 'bloom'),
+    skill('spanish', 'Spanish', 'globe', '#E0B54F', 'sunflower'),
+    skill('piano', 'Piano', 'music', '#C97F5F', 'cactus'),
+  ];
+  const minutes = { math: 1500, chemistry: 980, spanish: 620, piano: 300 };
+  const sessions = []; let n = 0;
+  for (const sk of skills) {
+    let left = minutes[sk.id];
+    for (let i = 0; left > 0 && i < 80; i++) {
+      const m = Math.min(left, [25, 45, 30, 50][i % 4]); left -= m;
+      sessions.push({ id: 'ss' + (n++), skillId: sk.id, minutes: m, date: day(-i), source: 'timer', at: day(-i) + 'T18:00:00.000Z' });
+    }
+  }
+  const ev = (title, time, timeEnd, color, date, important) => ({ id: 'ev' + (n++), title, time, timeEnd, color, important: !!important, repeat: null, days: null, date, except: [], createdAt: now });
+  const task = (title, due, skillId, done) => ({ id: 'tk' + (n++), title, done: !!done, doneAt: done ? now : null, due, skillId, priority: 0, createdAt: now });
+  const state = {
+    version: 1,
+    settings: { name: 'Jasmine', theme: 'light', sound: true, music: false, ringer: 'chime', hour24: false, onboarded: true, reminder: false, reminderTime: '19:00', reminderLast: null, taps: true },
+    skills,
+    tasks: [
+      task('Finish chem lab write-up', T, 'chemistry'),
+      task('Spanish vocab — unit 4', T, 'spanish'),
+      task('Read ch. 7 + take notes', T, null),
+      task('Practice scales 15 min', T, 'piano', true),
+    ],
+    weeklyTasks: [],
+    events: [
+      ev('Chemistry class', '09:00', '10:30', '#8FA9C9', T),
+      ev('Study group', '11:00', '12:00', '#C97F5F', T, true),
+      ev('Lunch w/ Mia', '12:30', '13:00', '#7FA98F', T),
+      ev('Math focus', '15:00', '16:30', '#D89B8A', T),
+      ev('Piano lesson', '17:30', '18:30', '#E0B54F', day(1)),
+      ev('Spanish quiz', '10:00', '11:00', '#8FA35E', day(2), true),
+    ],
+    notes: [
+      { id: 'n1', title: 'Chem — equilibrium', body: 'Le Chatelier: squeeze the system, it pushes back.\n\n· add reactant → shifts right\n· raise temp → favours the endothermic side', skillId: 'chemistry', color: '#8FA9C9', pinned: true, createdAt: now, updatedAt: now },
+      { id: 'n2', title: 'Spanish — preterite vs imperfect', body: 'Preterite = a finished snapshot. Imperfect = the background it happened against.', skillId: 'spanish', color: '#E0B54F', pinned: false, createdAt: now, updatedAt: now },
+      { id: 'n3', title: 'Math — integration by parts', body: 'LIATE picks u: logs, inverse trig, algebraic, trig, exponential.', skillId: 'math', color: '#8FA35E', pinned: false, createdAt: now, updatedAt: now },
+    ],
+    sessions, keepsakes: [],
+    timer: key === 'tour'
+      ? { skillId: 'math', durationSec: 1500, workSec: 1500, breakSec: 300, mode: 'single', phase: 'work', round: 1, startedAt: Date.now() - 9 * 60 * 1000, pausedAt: null, pausedTotal: 0 }
+      : null,
+    editedAt: now,
+  };
+  try { localStorage.setItem('bloom.v1', JSON.stringify(state)); } catch (e) { /* fine */ }
+}
+seedDemo();
+
+// wire each frame to its screen
+[...media.querySelectorAll('iframe')].forEach((frame, i) => {
+  const spec = card.screens[i] || card.screens[0];
+  frame.addEventListener('load', () => {
+    const w = frame.contentWindow;
+    try {
+      const st = w.document.createElement('style');
+      st.textContent = '#toasts, .signin-banner, .banner-overlay { display: none !important; }';
+      w.document.head.appendChild(st);
+    } catch (e) { /* fine */ }
+    setTimeout(() => {
+      let after = () => {};
+      try { after = spec.prep(w) || (() => {}); } catch (e) { /* no setup */ }
+      setTimeout(() => { try { after(); } catch (e) { /* nothing to scroll */ } }, 450);
+    }, 900);
+  });
+  frame.src = '/' + spec.route;
+});
+</script>
+</body>
+</html>

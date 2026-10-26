@@ -1,0 +1,361 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Bloom — pin</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..700;1,9..144,300..700&family=Quicksand:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { width: 1000px; height: 1500px; overflow: hidden; }
+  body {
+    font-family: 'Quicksand', system-ui, sans-serif;
+    background: #EDE8D6;
+    display: flex; align-items: center; justify-content: center;
+  }
+  /* faint graph paper, the way the winning pin reads */
+  .pin {
+    position: relative; width: 1000px; height: 1500px;
+    background:
+      repeating-linear-gradient(0deg, rgba(96,108,62,0.055) 0 1px, transparent 1px 26px),
+      repeating-linear-gradient(90deg, rgba(96,108,62,0.055) 0 1px, transparent 1px 26px),
+      #EDE8D6;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .card {
+    position: relative; width: 944px; height: 1444px;
+    background: #FAF7EA; border-radius: 46px;
+    box-shadow: 0 30px 70px -40px rgba(74,82,56,0.45);
+    padding: 58px 56px 46px;
+    display: flex; flex-direction: column; align-items: center;
+    overflow: hidden;
+  }
+
+  .wordmark {
+    font-family: 'Fraunces', Georgia, serif;
+    font-weight: 600; font-size: 104px; line-height: 1;
+    color: #333B27; letter-spacing: -0.015em;
+  }
+  .wordmark .dot { color: #C97F5F; }
+
+  .sub {
+    margin-top: 26px; text-align: center;
+    font-weight: 700; font-size: 31px; line-height: 1.38;
+    color: #3F4733; max-width: 740px; letter-spacing: -0.005em;
+  }
+
+  .body { display: flex; gap: 42px; margin-top: 40px; width: 100%; align-items: center; flex: 1; }
+
+  /* phone */
+  .phone {
+    flex: 0 0 auto; width: 394px; height: 824px;
+    background: #23271C; border-radius: 52px; padding: 12px;
+    box-shadow: 0 26px 50px -26px rgba(40,46,28,0.55);
+  }
+  .screen {
+    width: 370px; height: 800px; border-radius: 42px;
+    overflow: hidden; background: #F4F0E2; position: relative;
+  }
+  .screen iframe {
+    width: 390px; height: 844px; border: 0; display: block;
+    transform: scale(0.94872); transform-origin: top left;
+  }
+
+  .right { flex: 1 1 auto; display: flex; flex-direction: column; }
+  .appicon {
+    width: 128px; height: 128px; border-radius: 30px; overflow: hidden;
+    box-shadow: 0 14px 28px -14px rgba(74,82,56,0.5);
+    align-self: flex-start; margin-bottom: 40px;
+  }
+  .appicon img { width: 100%; height: 100%; display: block; }
+
+  .bullets { list-style: none; display: flex; flex-direction: column; gap: 32px; }
+  .bullets li {
+    display: flex; gap: 16px; align-items: flex-start;
+    font-weight: 600; font-size: 27px; line-height: 1.33; color: #414934;
+  }
+  .bullets svg { flex: 0 0 auto; margin-top: 4px; }
+
+  .url {
+    padding-top: 34px;
+    font-weight: 700; font-size: 27px; color: #9A9C86; letter-spacing: 0.01em;
+  }
+
+  .sparkle { position: absolute; }
+  .s1 { top: 92px; left: 108px; }
+  .s2 { top: 118px; right: 126px; }
+  .s3 { bottom: 150px; right: 118px; }
+  .s4 { bottom: 196px; left: 92px; }
+</style>
+</head>
+<body>
+<div class="pin">
+  <div class="card">
+    <div class="wordmark">bloom<span class="dot">.</span></div>
+    <div class="sub" id="sub"></div>
+    <div class="body">
+      <div class="phone"><div class="screen"><iframe id="app" src="about:blank" scrolling="no"></iframe></div></div>
+      <div class="right">
+        <div class="appicon"><img src="/icons/icon-512.png" alt="" /></div>
+        <ul class="bullets" id="bullets"></ul>
+      </div>
+    </div>
+    <div class="url" id="url"></div>
+  </div>
+
+  <svg class="sparkle s1" width="34" height="34" viewBox="0 0 24 24"><path d="M12 0c.6 6.3 5.1 10.8 12 12-6.9 1.2-11.4 5.7-12 12-.6-6.3-5.1-10.8-12-12 6.9-1.2 11.4-5.7 12-12z" fill="#C97F5F"/></svg>
+  <svg class="sparkle s2" width="26" height="26" viewBox="0 0 24 24"><path d="M12 0c.6 6.3 5.1 10.8 12 12-6.9 1.2-11.4 5.7-12 12-.6-6.3-5.1-10.8-12-12 6.9-1.2 11.4-5.7 12-12z" fill="#E0B54F"/></svg>
+  <svg class="sparkle s3" width="32" height="32" viewBox="0 0 24 24"><path d="M12 0c.6 6.3 5.1 10.8 12 12-6.9 1.2-11.4 5.7-12 12-.6-6.3-5.1-10.8-12-12 6.9-1.2 11.4-5.7 12-12z" fill="#E0B54F"/></svg>
+  <svg class="sparkle s4" width="22" height="22" viewBox="0 0 24 24"><path d="M12 0c.6 6.3 5.1 10.8 12 12-6.9 1.2-11.4 5.7-12 12-.6-6.3-5.1-10.8-12-12 6.9-1.2 11.4-5.7 12-12z" fill="#C97F5F"/></svg>
+</div>
+
+<script>
+const SITE = 'bloomgarden.study';
+
+// Each pin: a headline, four selling lines, and which screen of the real app to show.
+// `prep` runs inside the live iframe once it has loaded — same origin, so we can drive
+// the actual app rather than paste in a stale screenshot.
+const PINS = {
+  planner: {
+    sub: 'the free study app with a real<br>hour-by-hour day planner',
+    bullets: [
+      'lay your day out hour by hour — drag blocks to move them',
+      'every focused minute grows a little plant',
+      'timer, tasks, calendar & notes too',
+      'free · no download · phone & laptop',
+    ],
+    route: '#/calendar',
+    prep: (w) => {
+      const planBtn = [...w.document.querySelectorAll('button')].find((b) => /day planner/i.test(b.textContent));
+      if (planBtn && !planBtn.classList.contains('sel')) planBtn.click();
+      return () => {
+        w.document.querySelector('.day-panel')?.scrollIntoView({ block: 'start' });
+        const sc = w.document.querySelector('.day-grid-scroll');
+        if (sc) sc.scrollTop = 8 * 48 - 10;
+      };
+    },
+  },
+  garden: {
+    sub: 'the free study app where<br>your focus grows a garden',
+    bullets: [
+      'every focused minute waters a real little plant',
+      'five species, four stages each — grow them all',
+      'streaks, levels and keepsakes to collect',
+      'free · no download · phone & laptop',
+    ],
+    route: '#/garden',
+    prep: () => () => {},
+  },
+  timer: {
+    sub: 'a study timer that actually<br>grows something',
+    bullets: [
+      'pick a plant, pick a time, press start',
+      'watch it grow taller while you work',
+      'zen fullscreen + a pop-out timer for other apps',
+      'free · no download · phone & laptop',
+    ],
+    route: '#/focus',
+    prep: () => () => {},
+  },
+  allinone: {
+    sub: 'tasks, calendar, notes & focus —<br>all in one free study app',
+    bullets: [
+      'plan your day and your week in one place',
+      'notes that link to what you’re studying',
+      'due dates and focus sessions on one calendar',
+      'free · no download · phone & laptop',
+    ],
+    route: '#/today',
+    prep: () => () => {},
+  },
+  nodownload: {
+    sub: 'no download. no paywall.<br>just open it and start studying.',
+    bullets: [
+      'works in any browser — phone, tablet or laptop',
+      'sign in with just an email, or don’t sign in at all',
+      'your garden follows you across every device',
+      'free, and actually free',
+    ],
+    route: '#/calendar',
+    prep: (w) => {
+      const planBtn = [...w.document.querySelectorAll('button')].find((b) => /day planner/i.test(b.textContent));
+      if (planBtn && !planBtn.classList.contains('sel')) planBtn.click();
+      return () => {
+        w.document.querySelector('.day-panel')?.scrollIntoView({ block: 'start' });
+        const sc = w.document.querySelector('.day-grid-scroll');
+        if (sc) sc.scrollTop = 8 * 48 - 10;
+      };
+    },
+  },
+  month: {
+    sub: 'the free study app that puts classes,<br>due dates and focus on one calendar',
+    bullets: [
+      'classes, deadlines and study blocks in one month view',
+      'tap any day to plan it hour by hour',
+      'your focus sessions show up there too',
+      'free · no download · phone & laptop',
+    ],
+    route: '#/calendar',
+    prep: () => () => window.scrollTo(0, 0),
+  },
+  notes: {
+    sub: 'the free study app where your notes<br>live next to what you\u2019re studying',
+    bullets: [
+      'link a note to a subject and find it from its plant',
+      'pin the ones you reach for every day',
+      'no folders to maintain, no setup',
+      'free · no download · phone & laptop',
+    ],
+    route: '#/notes',
+    prep: () => () => {},
+  },
+  notion: {
+    sub: 'a free study planner that isn\u2019t<br>a $40 Notion template',
+    bullets: [
+      'nothing to buy, duplicate or set up — just open it',
+      'a real hour-by-hour day planner, built in',
+      'and a garden that grows while you study',
+      'free · no download · phone & laptop',
+    ],
+    route: '#/calendar',
+    prep: (w) => {
+      const b = [...w.document.querySelectorAll('button')].find((x) => /day planner/i.test(x.textContent));
+      if (b && !b.classList.contains('sel')) b.click();
+      return () => {
+        w.document.querySelector('.day-panel')?.scrollIntoView({ block: 'start' });
+        const sc = w.document.querySelector('.day-grid-scroll');
+        if (sc) sc.scrollTop = 8 * 48 - 10;
+      };
+    },
+  },
+  streak: {
+    sub: 'the free study app that makes<br>a study streak worth keeping',
+    bullets: [
+      'every focused minute feeds a plant that remembers',
+      'miss a day and you can see it in the garden',
+      'streaks, levels and keepsakes to earn',
+      'free · no download · phone & laptop',
+    ],
+    route: '#/today',
+    prep: () => () => window.scrollTo(0, 0),
+  },
+  book: {
+    sub: 'the free study app with a whole<br>plant book to fill in',
+    bullets: [
+      'five species, four stages each — twenty to discover',
+      'every stage unlocks by actually studying',
+      'silhouettes show you what\u2019s still out there',
+      'free · no download · phone & laptop',
+    ],
+    route: '#/garden',
+    prep: (w) => {
+      const b = [...w.document.querySelectorAll('button')].find((x) => /plant book/i.test(x.textContent));
+      if (b) b.click();
+      return () => {};
+    },
+  },
+};
+
+const FLOWER = '<svg width="26" height="26" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="5.4" r="3.5" fill="#C97F5F"/><circle cx="12" cy="18.6" r="3.5" fill="#C97F5F"/><circle cx="5.4" cy="12" r="3.5" fill="#C97F5F"/><circle cx="18.6" cy="12" r="3.5" fill="#C97F5F"/><circle cx="12" cy="12" r="3.4" fill="#E0B54F"/></svg>';
+
+const key = new URLSearchParams(location.search).get('v') || 'planner';
+const pin = PINS[key] || PINS.planner;
+
+document.getElementById('sub').innerHTML = pin.sub;
+document.getElementById('url').textContent = SITE;
+document.getElementById('bullets').innerHTML = pin.bullets
+  .map((b) => `<li>${FLOWER}<span>${b}</span></li>`).join('');
+
+// The pin is served from the same origin as the app, so it can lay down a believable
+// demo garden before the iframe boots. That keeps the shots reproducible anywhere —
+// including headless Chrome, which has none of your real data.
+function seedDemo(withTimer) {
+  const iso = (d) => d.toISOString().slice(0, 10);
+  const day = (n) => { const x = new Date(); x.setDate(x.getDate() + n); return iso(x); };
+  const T = day(0);
+  const now = new Date().toISOString();
+  const skill = (id, name, icon, color, species) => ({ id, name, icon, color, species, createdAt: new Date(Date.now() - 80 * 864e5).toISOString() });
+  const skills = [
+    skill('chemistry', 'Chemistry', 'flask', '#8FA9C9', 'fern'),
+    skill('math', 'Math', 'calc', '#8FA35E', 'bloom'),
+    skill('spanish', 'Spanish', 'globe', '#E0B54F', 'sunflower'),
+    skill('piano', 'Piano', 'music', '#C97F5F', 'cactus'),
+  ];
+  // deterministic history so every render shows the same well-grown garden
+  const minutes = { math: 1500, chemistry: 980, spanish: 620, piano: 300 };
+  const sessions = [];
+  let n = 0;
+  for (const sk of skills) {
+    let left = minutes[sk.id];
+    for (let i = 0; left > 0 && i < 80; i++) {
+      const m = Math.min(left, [25, 45, 30, 50][i % 4]);
+      left -= m;
+      sessions.push({ id: 'ss' + (n++), skillId: sk.id, minutes: m, date: day(-i), source: 'timer', at: day(-i) + 'T18:00:00.000Z' });
+    }
+  }
+  const ev = (title, time, timeEnd, color, date, important) => ({ id: 'ev' + (n++), title, time, timeEnd, color, important: !!important, repeat: null, days: null, date, except: [], createdAt: now });
+  const task = (title, due, skillId, done) => ({ id: 'tk' + (n++), title, done: !!done, doneAt: done ? now : null, due, skillId, priority: 0, createdAt: now });
+
+  const state = {
+    version: 1,
+    settings: { name: 'Jasmine', theme: 'light', sound: true, music: false, ringer: 'chime', hour24: false, onboarded: true, reminder: false, reminderTime: '19:00', reminderLast: null, taps: true },
+    skills,
+    tasks: [
+      task('Finish chem lab write-up', T, 'chemistry'),
+      task('Spanish vocab — unit 4', T, 'spanish'),
+      task('Read ch. 7 + take notes', T, null),
+      task('Practice scales 15 min', T, 'piano', true),
+      task('Email Prof. Ramos', day(1), null),
+    ],
+    weeklyTasks: [],
+    events: [
+      ev('Chemistry class', '09:00', '10:30', '#8FA9C9', T),
+      ev('Study group', '11:00', '12:00', '#C97F5F', T, true),
+      ev('Lunch w/ Mia', '12:30', '13:00', '#7FA98F', T),
+      ev('Math focus', '15:00', '16:30', '#D89B8A', T),
+      ev('Piano lesson', '17:30', '18:30', '#E0B54F', day(1)),
+      ev('Spanish quiz', '10:00', '11:00', '#8FA35E', day(2), true),
+      ev('Lab report due', '14:00', null, '#B08FB6', day(4)),
+    ],
+    notes: [
+      { id: 'n1', title: 'Chem — equilibrium', body: 'Le Chatelier: squeeze the system, it pushes back.\n\n· add reactant → shifts right\n· raise temp → favours the endothermic side\n· pressure only matters when moles of gas differ', skillId: 'chemistry', color: '#8FA9C9', pinned: true, createdAt: now, updatedAt: now },
+      { id: 'n2', title: 'Spanish — preterite vs imperfect', body: 'Preterite = a finished snapshot. Imperfect = the background it happened against.', skillId: 'spanish', color: '#E0B54F', pinned: false, createdAt: now, updatedAt: now },
+      { id: 'n3', title: 'Math — integration by parts', body: 'LIATE picks u: logs, inverse trig, algebraic, trig, exponential.', skillId: 'math', color: '#8FA35E', pinned: false, createdAt: now, updatedAt: now },
+    ],
+    sessions,
+    keepsakes: [],
+    timer: withTimer
+      ? { skillId: 'math', durationSec: 1500, workSec: 1500, breakSec: 300, mode: 'single', phase: 'work', round: 1, startedAt: Date.now() - 9 * 60 * 1000, pausedAt: null, pausedTotal: 0 }
+      : null,
+    editedAt: now,
+  };
+  try { localStorage.setItem('bloom.v1', JSON.stringify(state)); } catch (e) { /* private mode — the shot just shows an empty app */ }
+}
+seedDemo(key === 'timer');
+
+const frame = document.getElementById('app');
+frame.addEventListener('load', () => {
+  const w = frame.contentWindow;
+  // Toasts ("6 keepsakes earned…") and the sign-in nudge are real app behaviour, but in
+  // a still frame they just sit on top of the screen's title. Keep them out of the shot.
+  try {
+    const st = w.document.createElement('style');
+    st.textContent = '#toasts, .signin-banner, .banner-overlay { display: none !important; }';
+    w.document.head.appendChild(st);
+  } catch (e) { /* iframe not ready — the shot still works */ }
+  // let the app paint its first render, then put it on the right screen and hold still
+  setTimeout(() => {
+    let after = () => {};
+    try { after = pin.prep(w) || (() => {}); } catch (e) { /* screen needs no setup */ }
+    setTimeout(() => {
+      try { after(); } catch (e) { /* nothing to scroll */ }
+      // tell the capture script we're settled
+      setTimeout(() => { document.documentElement.setAttribute('data-ready', '1'); }, 500);
+    }, 450);
+  }, 900);
+});
+frame.src = '/' + pin.route;
+</script>
+</body>
+</html>

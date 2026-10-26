@@ -1,0 +1,168 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Bloom — quiet card</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..700;1,9..144,300..700&family=Quicksand:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { width: 1000px; height: 1250px; overflow: hidden; }
+  body { font-family: 'Quicksand', system-ui, sans-serif; }
+
+  .card {
+    position: relative; width: 1000px; height: 1250px; overflow: hidden;
+    display: flex; flex-direction: column; align-items: center;
+    padding: 96px 80px 124px;
+  }
+
+  /* One line of copy, set in Bloom's own serif. No pattern, no stickers — the point is
+     that it feels like somewhere quiet to study, which is what the app is for. */
+  .hook {
+    font-family: 'Fraunces', Georgia, serif;
+    font-weight: 450; font-size: 58px; line-height: 1.26;
+    color: #39412C; text-align: center; letter-spacing: -0.012em;
+    max-width: 780px;
+  }
+  .hook em { font-style: italic; font-weight: 500; color: #6E7E41; }
+
+  /* let the leftover height sit evenly above and below the screenshot rather than
+     pooling at the bottom — the whole point of these is that they breathe */
+  .media { margin-top: 56px; flex: 1; display: flex; align-items: center; justify-content: center; }
+
+  .phone {
+    background: #23271C; border-radius: 42px; padding: 10px;
+    box-shadow: 0 34px 62px -34px rgba(40,46,28,0.45);
+    width: 364px; height: 762px;
+  }
+  .screen { width: 344px; height: 742px; border-radius: 33px; overflow: hidden; background: #F4F0E2; }
+  .screen iframe { width: 390px; height: 844px; border: 0; display: block; transform: scale(0.8821); transform-origin: top left; }
+
+  .browser { border-radius: 15px; overflow: hidden; width: 824px; box-shadow: 0 34px 62px -34px rgba(40,46,28,0.45); }
+  .bar { height: 34px; display: flex; align-items: center; gap: 7px; padding: 0 13px; background: #E6E2D2; }
+  .bar i { width: 10px; height: 10px; border-radius: 50%; display: block; }
+  .bview { width: 824px; height: 534px; overflow: hidden; background: #F4F0E2; }
+  .bview iframe { width: 1340px; height: 870px; border: 0; display: block; transform: scale(0.6149); transform-origin: top left; }
+
+  .url {
+    position: absolute; left: 0; right: 0; bottom: 52px; text-align: center;
+    font-family: 'Quicksand'; font-weight: 600; font-size: 22px;
+    color: #9DA089; letter-spacing: 0.06em;
+  }
+</style>
+</head>
+<body>
+<div class="card" id="card">
+  <div class="hook" id="hook"></div>
+  <div class="media" id="media"></div>
+  <div class="url" id="url"></div>
+</div>
+
+<script>
+const SITE = 'bloomgarden.study';
+
+const toPlanner = (w) => {
+  const b = [...w.document.querySelectorAll('button')].find((x) => /day planner/i.test(x.textContent));
+  if (b && !b.classList.contains('sel')) b.click();
+  return () => {
+    w.document.querySelector('.day-panel')?.scrollIntoView({ block: 'start' });
+    const sc = w.document.querySelector('.day-grid-scroll');
+    if (sc) sc.scrollTop = 8 * 48 - 10;
+  };
+};
+const toTop = () => () => window.scrollTo(0, 0);
+const asIs = () => () => {};
+
+const CARDS = {
+  grows:  { bg: '#F4F0E2', hook: 'every minute you study<br>grows a <em>plant</em>', kind: 'phone', route: '#/garden', prep: asIs },
+  hours:  { bg: '#FAF7EC', hook: 'your whole day,<br><em>hour by hour</em>', kind: 'phone', route: '#/calendar', prep: toPlanner },
+  timer:  { bg: '#EEF1E1', hook: 'a study timer that<br><em>grows</em> something', kind: 'phone', route: '#/focus', prep: asIs, timer: true },
+  free:   { bg: '#F4F0E2', hook: '<em>free.</em><br>no download. no account.', kind: 'browser', route: '#/calendar', prep: toPlanner },
+  watch:  { bg: '#F7EEE7', hook: 'study.<br>watch it <em>grow</em>.', kind: 'phone', route: '#/garden', prep: (w) => { const b = [...w.document.querySelectorAll('button')].find((x) => /plant book/i.test(x.textContent)); if (b) b.click(); return () => {}; } },
+};
+
+const key = new URLSearchParams(location.search).get('v') || 'grows';
+const card = CARDS[key] || CARDS.grows;
+
+document.getElementById('card').style.background = card.bg;
+document.getElementById('hook').innerHTML = card.hook;
+document.getElementById('url').textContent = SITE;
+
+const media = document.getElementById('media');
+if (card.kind === 'browser') {
+  media.innerHTML = '<div class="browser"><div class="bar"><i style="background:#D99B8A"></i><i style="background:#E0B54F"></i><i style="background:#8FA35E"></i></div><div class="bview"><iframe scrolling="no"></iframe></div></div>';
+} else {
+  media.innerHTML = '<div class="phone"><div class="screen"><iframe scrolling="no"></iframe></div></div>';
+}
+
+function seedDemo(withTimer) {
+  const iso = (d) => d.toISOString().slice(0, 10);
+  const day = (n) => { const x = new Date(); x.setDate(x.getDate() + n); return iso(x); };
+  const T = day(0);
+  const now = new Date().toISOString();
+  const skill = (id, name, icon, color, species) => ({ id, name, icon, color, species, createdAt: new Date(Date.now() - 80 * 864e5).toISOString() });
+  const skills = [
+    skill('chemistry', 'Chemistry', 'flask', '#8FA9C9', 'fern'),
+    skill('math', 'Math', 'calc', '#8FA35E', 'bloom'),
+    skill('spanish', 'Spanish', 'globe', '#E0B54F', 'sunflower'),
+    skill('piano', 'Piano', 'music', '#C97F5F', 'cactus'),
+  ];
+  const minutes = { math: 1500, chemistry: 980, spanish: 620, piano: 300 };
+  const sessions = []; let n = 0;
+  for (const sk of skills) {
+    let left = minutes[sk.id];
+    for (let i = 0; left > 0 && i < 80; i++) {
+      const m = Math.min(left, [25, 45, 30, 50][i % 4]); left -= m;
+      sessions.push({ id: 'ss' + (n++), skillId: sk.id, minutes: m, date: day(-i), source: 'timer', at: day(-i) + 'T18:00:00.000Z' });
+    }
+  }
+  const ev = (title, time, timeEnd, color, date, important) => ({ id: 'ev' + (n++), title, time, timeEnd, color, important: !!important, repeat: null, days: null, date, except: [], createdAt: now });
+  const task = (title, due, skillId, done) => ({ id: 'tk' + (n++), title, done: !!done, doneAt: done ? now : null, due, skillId, priority: 0, createdAt: now });
+  const state = {
+    version: 1,
+    settings: { name: 'Jasmine', theme: 'light', sound: true, music: false, ringer: 'chime', hour24: false, onboarded: true, reminder: false, reminderTime: '19:00', reminderLast: null, taps: true },
+    skills,
+    tasks: [
+      task('Finish chem lab write-up', T, 'chemistry'),
+      task('Spanish vocab — unit 4', T, 'spanish'),
+      task('Read ch. 7 + take notes', T, null),
+      task('Practice scales 15 min', T, 'piano', true),
+    ],
+    weeklyTasks: [],
+    events: [
+      ev('Chemistry class', '09:00', '10:30', '#8FA9C9', T),
+      ev('Study group', '11:00', '12:00', '#C97F5F', T, true),
+      ev('Lunch w/ Mia', '12:30', '13:00', '#7FA98F', T),
+      ev('Math focus', '15:00', '16:30', '#D89B8A', T),
+      ev('Piano lesson', '17:30', '18:30', '#E0B54F', day(1)),
+      ev('Spanish quiz', '10:00', '11:00', '#8FA35E', day(2), true),
+    ],
+    notes: [], sessions, keepsakes: [],
+    timer: withTimer
+      ? { skillId: 'math', durationSec: 1500, workSec: 1500, breakSec: 300, mode: 'single', phase: 'work', round: 1, startedAt: Date.now() - 9 * 60 * 1000, pausedAt: null, pausedTotal: 0 }
+      : null,
+    editedAt: now,
+  };
+  try { localStorage.setItem('bloom.v1', JSON.stringify(state)); } catch (e) { /* fine */ }
+}
+seedDemo(!!card.timer);
+
+const frame = media.querySelector('iframe');
+frame.addEventListener('load', () => {
+  const w = frame.contentWindow;
+  try {
+    const st = w.document.createElement('style');
+    st.textContent = '#toasts, .signin-banner, .banner-overlay { display: none !important; }';
+    w.document.head.appendChild(st);
+  } catch (e) { /* fine */ }
+  setTimeout(() => {
+    let after = () => {};
+    try { after = card.prep(w) || (() => {}); } catch (e) { /* no setup */ }
+    setTimeout(() => { try { after(); } catch (e) { /* nothing to scroll */ } }, 450);
+  }, 900);
+});
+frame.src = '/' + card.route;
+</script>
+</body>
+</html>

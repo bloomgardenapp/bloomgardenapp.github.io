@@ -1,0 +1,295 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Bloom — app card</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Shantell+Sans:ital,wght@0,300..800;1,300..800&family=Quicksand:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { width: 1000px; height: 1250px; overflow: hidden; }
+  body { font-family: 'Quicksand', system-ui, sans-serif; }
+
+  .card { position: relative; width: 1000px; height: 1250px; overflow: hidden; }
+
+  /* ---- backgrounds, one per pin, in Bloom's palette ---- */
+  .bg-daisy {
+    background-color: #E7E3D6;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200' viewBox='0 0 200 200'%3E%3Cg fill='%23FBF9F2'%3E%3Cg transform='translate(42 40)'%3E%3Ccircle cx='0' cy='-19' r='15'/%3E%3Ccircle cx='18' cy='-6' r='15'/%3E%3Ccircle cx='11' cy='15' r='15'/%3E%3Ccircle cx='-11' cy='15' r='15'/%3E%3Ccircle cx='-18' cy='-6' r='15'/%3E%3Ccircle cx='0' cy='0' r='9' fill='%23E7E3D6'/%3E%3C/g%3E%3Cg transform='translate(150 130) scale(0.78)'%3E%3Ccircle cx='0' cy='-19' r='15'/%3E%3Ccircle cx='18' cy='-6' r='15'/%3E%3Ccircle cx='11' cy='15' r='15'/%3E%3Ccircle cx='-11' cy='15' r='15'/%3E%3Ccircle cx='-18' cy='-6' r='15'/%3E%3Ccircle cx='0' cy='0' r='9' fill='%23E7E3D6'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+  }
+  .bg-grid {
+    background-color: #F4F0E2;
+    background-image:
+      repeating-linear-gradient(0deg, rgba(96,108,62,0.10) 0 1.5px, transparent 1.5px 34px),
+      repeating-linear-gradient(90deg, rgba(96,108,62,0.10) 0 1.5px, transparent 1.5px 34px);
+  }
+  .bg-pastel {
+    background:
+      radial-gradient(900px 500px at 12% 4%, #F6E6DC 0%, transparent 62%),
+      radial-gradient(800px 600px at 92% 22%, #E9EDD6 0%, transparent 60%),
+      radial-gradient(900px 700px at 70% 102%, #F3E8D2 0%, transparent 62%),
+      #F7F3E8;
+  }
+  /* crumpled paper: soft creases from overlapping off-white washes */
+  .bg-paper {
+    background-color: #F2EEE2;
+    background-image:
+      linear-gradient(118deg, rgba(255,255,255,0.75) 0%, transparent 28%),
+      linear-gradient(290deg, rgba(255,255,255,0.6) 0%, transparent 32%),
+      linear-gradient(32deg, rgba(150,145,120,0.09) 0%, transparent 22%),
+      linear-gradient(212deg, rgba(150,145,120,0.08) 0%, transparent 26%),
+      repeating-linear-gradient(0deg, rgba(120,120,95,0.055) 0 1px, transparent 1px 30px),
+      repeating-linear-gradient(90deg, rgba(120,120,95,0.055) 0 1px, transparent 1px 30px);
+  }
+  .bg-split { background: #EFEADA; }
+  .bg-split::before {
+    content: ''; position: absolute; inset: 0 0 0 46%;
+    background: #DCE2C1;
+  }
+
+  /* ---- content ---- */
+  .inner { position: relative; width: 100%; height: 100%; padding: 76px 74px; display: flex; }
+  .inner.side { align-items: center; gap: 56px; }
+  .inner.side.flip { flex-direction: row-reverse; }
+  .inner.stack { flex-direction: column; align-items: center; text-align: center; padding-top: 84px; }
+
+  .copy { flex: 1 1 auto; min-width: 0; }
+  .inner.stack .copy { flex: 0 0 auto; max-width: 720px; }
+
+  .title {
+    font-family: 'Shantell Sans', 'Quicksand', cursive;
+    font-weight: 700; font-size: 74px; line-height: 1.02;
+    color: #333B27; letter-spacing: -0.01em;
+  }
+  .title .dot { color: #C97F5F; }
+  .meta {
+    font-family: 'Shantell Sans', cursive; font-style: italic;
+    font-weight: 500; font-size: 27px; color: #7E8369; margin-top: 10px;
+  }
+  .inner.stack .meta { margin-bottom: 4px; }
+
+  p.body {
+    margin-top: 30px; font-size: 25px; line-height: 1.72;
+    font-weight: 500; color: #454C37; letter-spacing: 0.035em;
+  }
+  p.body + p.body { margin-top: 26px; }
+  p.body b { font-weight: 700; color: #3A422C; }
+
+  /* ---- phone ---- */
+  .phone {
+    flex: 0 0 auto; background: #23271C; border-radius: 46px; padding: 10px;
+    box-shadow: 0 30px 56px -28px rgba(40,46,28,0.5);
+  }
+  .screen { border-radius: 37px; overflow: hidden; background: #F4F0E2; }
+  .screen iframe { border: 0; display: block; width: 390px; height: 844px; transform-origin: top left; }
+  /* side layouts get a taller phone, stacked ones a shorter crop */
+  .side .phone { width: 372px; height: 778px; }
+  .side .screen { width: 352px; height: 758px; }
+  .side .screen iframe { transform: scale(0.9026); }
+  .stack .phone { width: 340px; height: 600px; margin-top: 34px; }
+  .stack .screen { width: 320px; height: 580px; }
+  .stack .screen iframe { transform: scale(0.8205); }
+
+  /* ---- handle ---- */
+  .handle {
+    position: absolute; left: 0; right: 0; bottom: 38px;
+    display: flex; align-items: center; justify-content: center; gap: 11px;
+    font-family: 'Shantell Sans', cursive; font-weight: 600; font-size: 24px; color: #6E7358;
+  }
+
+  /* ---- doodles ---- */
+  .doodle { position: absolute; pointer-events: none; }
+  .d-tape {
+    top: 0; left: 50%; transform: translateX(-50%) rotate(-1.5deg);
+    width: 268px; height: 62px; opacity: 0.85;
+    background: repeating-linear-gradient(45deg, rgba(201,127,95,0.28) 0 16px, rgba(224,181,79,0.26) 16px 32px);
+    border-left: 2px dashed rgba(255,255,255,0.5); border-right: 2px dashed rgba(255,255,255,0.5);
+  }
+</style>
+</head>
+<body>
+<div class="card" id="card">
+  <div class="inner" id="inner">
+    <div class="copy">
+      <div class="title">bloom<span class="dot">.</span></div>
+      <div class="meta" id="meta"></div>
+      <div id="paras"></div>
+    </div>
+    <div class="phone"><div class="screen"><iframe id="app" src="about:blank" scrolling="no"></iframe></div></div>
+  </div>
+  <div class="handle">
+    <svg width="27" height="27" viewBox="0 0 24 24"><circle cx="12" cy="5.4" r="3.6" fill="#8FA35E"/><circle cx="12" cy="18.6" r="3.6" fill="#8FA35E"/><circle cx="5.4" cy="12" r="3.6" fill="#8FA35E"/><circle cx="18.6" cy="12" r="3.6" fill="#8FA35E"/><circle cx="12" cy="12" r="3.3" fill="#E0B54F"/></svg>
+    <span id="handle"></span>
+  </div>
+</div>
+
+<script>
+const SITE = 'bloomgarden.study';
+
+// Written the way the app-recommendation pins read: what it is, then what it costs and
+// where it runs. No bullet lists — these are meant to look like a person recommending
+// something, not a product ad.
+const CARDS = {
+  intro: {
+    bg: 'bg-daisy', layout: 'side',
+    meta: 'free study planner · web, iPhone & iPad',
+    paras: [
+      'A cosy little study planner where your focus actually grows something. Plan your day, start the timer, and every focused minute waters a plant in your own garden.',
+      'Tasks, calendar, notes and a focus timer all feed the same garden. <b>Completely free</b>, nothing to download, and it works in any browser.',
+    ],
+    route: '#/calendar',
+    prep: (w) => {
+      const b = [...w.document.querySelectorAll('button')].find((x) => /day planner/i.test(x.textContent));
+      if (b && !b.classList.contains('sel')) b.click();
+      return () => {
+        w.document.querySelector('.day-panel')?.scrollIntoView({ block: 'start' });
+        const sc = w.document.querySelector('.day-grid-scroll');
+        if (sc) sc.scrollTop = 8 * 48 - 10;
+      };
+    },
+  },
+  planner: {
+    bg: 'bg-grid', layout: 'stack', tape: true,
+    meta: 'the day planner',
+    paras: [
+      'Lay your whole day out hour by hour. Tap an empty slot to drop something in, drag a block to move it, and watch your classes, study blocks and breaks line up.',
+      'The bit most free planners skip — a real timeline, not just another to-do list.',
+    ],
+    route: '#/calendar',
+    prep: (w) => {
+      const b = [...w.document.querySelectorAll('button')].find((x) => /day planner/i.test(x.textContent));
+      if (b && !b.classList.contains('sel')) b.click();
+      return () => {
+        w.document.querySelector('.day-panel')?.scrollIntoView({ block: 'start' });
+        const sc = w.document.querySelector('.day-grid-scroll');
+        if (sc) sc.scrollTop = 8 * 48 - 10;
+      };
+    },
+  },
+  garden: {
+    bg: 'bg-pastel', layout: 'side flip',
+    meta: 'the garden',
+    paras: [
+      'Every subject you study is a plant. Focused minutes are the water, and the plant grows through four stages as the hours add up.',
+      'Five species to collect, levels to climb and keepsakes to earn — so a quiet hour of revision leaves something behind.',
+    ],
+    route: '#/garden',
+    prep: () => () => {},
+  },
+  timer: {
+    bg: 'bg-paper', layout: 'side',
+    meta: 'the focus timer',
+    paras: [
+      'Pick a plant, pick a length, press start. The ring counts down while the plant grows taller beside it.',
+      'There is a zen fullscreen mode for deep work and a pop-out timer that floats over other apps, so you can see the countdown while you work elsewhere.',
+    ],
+    route: '#/focus',
+    prep: () => () => {},
+  },
+  book: {
+    bg: 'bg-split', layout: 'side flip',
+    meta: 'the plant book',
+    paras: [
+      'Twenty plants to discover — five species, four stages each. The ones you have not grown yet sit there as grey silhouettes.',
+      'Nothing unlocks with coins or ads. The only way to fill the book in is to actually put the hours in.',
+    ],
+    route: '#/garden',
+    prep: (w) => {
+      const b = [...w.document.querySelectorAll('button')].find((x) => /plant book/i.test(x.textContent));
+      if (b) b.click();
+      return () => {};
+    },
+  },
+};
+
+const key = new URLSearchParams(location.search).get('v') || 'intro';
+const card = CARDS[key] || CARDS.intro;
+
+document.getElementById('card').classList.add(card.bg);
+document.getElementById('inner').className = 'inner ' + card.layout;
+document.getElementById('meta').textContent = card.meta;
+document.getElementById('paras').innerHTML = card.paras.map((p) => `<p class="body">${p}</p>`).join('');
+document.getElementById('handle').textContent = SITE;
+if (card.tape) {
+  const t = document.createElement('div');
+  t.className = 'doodle d-tape';
+  document.getElementById('card').appendChild(t);
+}
+
+// same trick as the other template: lay down a demo garden before the app boots, so the
+// screenshots are real and identical on any machine
+function seedDemo(withTimer) {
+  const iso = (d) => d.toISOString().slice(0, 10);
+  const day = (n) => { const x = new Date(); x.setDate(x.getDate() + n); return iso(x); };
+  const T = day(0);
+  const now = new Date().toISOString();
+  const skill = (id, name, icon, color, species) => ({ id, name, icon, color, species, createdAt: new Date(Date.now() - 80 * 864e5).toISOString() });
+  const skills = [
+    skill('chemistry', 'Chemistry', 'flask', '#8FA9C9', 'fern'),
+    skill('math', 'Math', 'calc', '#8FA35E', 'bloom'),
+    skill('spanish', 'Spanish', 'globe', '#E0B54F', 'sunflower'),
+    skill('piano', 'Piano', 'music', '#C97F5F', 'cactus'),
+  ];
+  const minutes = { math: 1500, chemistry: 980, spanish: 620, piano: 300 };
+  const sessions = [];
+  let n = 0;
+  for (const sk of skills) {
+    let left = minutes[sk.id];
+    for (let i = 0; left > 0 && i < 80; i++) {
+      const m = Math.min(left, [25, 45, 30, 50][i % 4]);
+      left -= m;
+      sessions.push({ id: 'ss' + (n++), skillId: sk.id, minutes: m, date: day(-i), source: 'timer', at: day(-i) + 'T18:00:00.000Z' });
+    }
+  }
+  const ev = (title, time, timeEnd, color, date, important) => ({ id: 'ev' + (n++), title, time, timeEnd, color, important: !!important, repeat: null, days: null, date, except: [], createdAt: now });
+  const task = (title, due, skillId, done) => ({ id: 'tk' + (n++), title, done: !!done, doneAt: done ? now : null, due, skillId, priority: 0, createdAt: now });
+  const state = {
+    version: 1,
+    settings: { name: 'Jasmine', theme: 'light', sound: true, music: false, ringer: 'chime', hour24: false, onboarded: true, reminder: false, reminderTime: '19:00', reminderLast: null, taps: true },
+    skills,
+    tasks: [
+      task('Finish chem lab write-up', T, 'chemistry'),
+      task('Spanish vocab — unit 4', T, 'spanish'),
+      task('Read ch. 7 + take notes', T, null),
+      task('Practice scales 15 min', T, 'piano', true),
+    ],
+    weeklyTasks: [],
+    events: [
+      ev('Chemistry class', '09:00', '10:30', '#8FA9C9', T),
+      ev('Study group', '11:00', '12:00', '#C97F5F', T, true),
+      ev('Lunch w/ Mia', '12:30', '13:00', '#7FA98F', T),
+      ev('Math focus', '15:00', '16:30', '#D89B8A', T),
+      ev('Piano lesson', '17:30', '18:30', '#E0B54F', day(1)),
+      ev('Spanish quiz', '10:00', '11:00', '#8FA35E', day(2), true),
+    ],
+    notes: [],
+    sessions,
+    keepsakes: [],
+    timer: withTimer
+      ? { skillId: 'math', durationSec: 1500, workSec: 1500, breakSec: 300, mode: 'single', phase: 'work', round: 1, startedAt: Date.now() - 9 * 60 * 1000, pausedAt: null, pausedTotal: 0 }
+      : null,
+    editedAt: now,
+  };
+  try { localStorage.setItem('bloom.v1', JSON.stringify(state)); } catch (e) { /* fine */ }
+}
+seedDemo(key === 'timer');
+
+const frame = document.getElementById('app');
+frame.addEventListener('load', () => {
+  const w = frame.contentWindow;
+  try {
+    const st = w.document.createElement('style');
+    st.textContent = '#toasts, .signin-banner, .banner-overlay { display: none !important; }';
+    w.document.head.appendChild(st);
+  } catch (e) { /* fine */ }
+  setTimeout(() => {
+    let after = () => {};
+    try { after = card.prep(w) || (() => {}); } catch (e) { /* no setup needed */ }
+    setTimeout(() => { try { after(); } catch (e) { /* nothing to scroll */ } }, 450);
+  }, 900);
+});
+frame.src = '/' + card.route;
+</script>
+</body>
+</html>
