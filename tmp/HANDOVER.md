@@ -39,11 +39,21 @@ not already gone off.
 Moving from `bloomgardenapp.github.io` to **`bloomgarden.study`** (registered at Porkbun,
 expires 2027-10-25).
 
-### Done
+### Done — the domain is LIVE and serving the current build
 - Root `A` record → `185.199.108.153` (one of GitHub's four Pages IPs)
-- `CNAME` file added to the repo root containing `bloomgarden.study`
+- `CNAME` file in the repo root containing `bloomgarden.study`
+- GitHub Pages certificate issued (`approved`) and **Enforce HTTPS is on**
 - All four ad templates and `PIN-COPY.md` updated to the new domain
 - The five "quiet" ads re-rendered with the new URL printed on them
+
+Verified 2026-10-26:
+
+| url | result |
+|---|---|
+| `http://bloomgarden.study` | 301 → `https://bloomgarden.study/` |
+| `https://bloomgarden.study` | **200**, serving the current build |
+| `https://bloomgardenapp.github.io` | 301 → `bloomgarden.study` |
+| `http://www.bloomgarden.study` | 301 → `bloomgarden.study` (via Porkbun's wildcard) |
 
 ### Still to do — in Porkbun DNS for `bloomgarden.study`
 
@@ -56,7 +66,8 @@ A  (blank)  185.199.110.153
 A  (blank)  185.199.111.153
 ```
 
-**Fix `www`.** It still points at Porkbun's parking page. It needs to be:
+**Fix `www`.** It currently redirects via a leftover Porkbun record rather than pointing
+at GitHub. It works today but is not under your control; it should be:
 
 ```
 CNAME  www  bloomgardenapp.github.io
@@ -69,9 +80,9 @@ CNAME  www  bloomgardenapp.github.io
 > 2. Porkbun's CSRF token expires if the page sits open. Symptom is
 >    `Error: Security Error. Refresh and try again.` — just reload before editing.
 
-**Then, after DNS is complete:** check GitHub → Settings → Pages shows the custom domain
-with a valid certificate, and tick **Enforce HTTPS**. GitHub issues the cert automatically
-once DNS resolves; it can take a few minutes to an hour.
+Neither is urgent — the site is up and on HTTPS. The extra A records buy failover if one
+of GitHub's servers goes down; the `www` record takes that hostname off Porkbun's
+infrastructure.
 
 ---
 
